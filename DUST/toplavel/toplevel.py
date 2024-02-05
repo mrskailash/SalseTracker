@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import tkinter as tk
 from tkinter import ttk
@@ -185,7 +186,7 @@ class LeadHeader:
             # limit = 1000
 
             close_icon = 0
-            check_img_path = "asset/check_icon/check.png"
+            check_img_path = "check.png"
             check_icon = Image.open(check_img_path)
             check_icon = check_icon.resize((30, 30))
             check_icon_photo = ImageTk.PhotoImage(check_icon)
@@ -204,6 +205,12 @@ class LeadHeader:
             ok_label = tk.Label(detail_window, text="ok")
             ok_label.place(x=15, y=35)
 
+            check_img_path = os.path.join(
+                os.path.dirname(__file__),  # Get the directory of the current script
+                "asset",
+                "check_icon",
+                "check.png",
+            )
             close_img_path = "asset/check_icon/close.png"
             close_icon = Image.open(close_img_path)
             close_icon = close_icon.resize((30, 30))
