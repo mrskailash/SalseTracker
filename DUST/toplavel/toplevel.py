@@ -11,6 +11,9 @@ class LeadHeader:
     search_icon = None
     date_filter_icon = None
     refresh_icon = None
+    add_icon = None
+    ok_icon = None
+    close_icon = None
 
     def __init__(self, parent):
         self.parent = parent
@@ -151,151 +154,141 @@ class LeadHeader:
 
         def open_detail_window():
             close_icon = None
-            # def on_text_change(event, text_widget, char_count_label, limit):
-            #     char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
-            #     char_count_label.config(text=f"{char_count}/{limit}")
 
-            # def validate_input(char, text_widget, char_count_label, limit):
-            #     char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
-            #     if char_count >= limit:
-            #         return False
-            #     char_count_label.config(text=f"{char_count}/{limit}")
-            #     return True
+            def on_text_change(event, text_widget, char_count_label, limit):
+                char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
+                char_count_label.config(text=f"{char_count}/{limit}")
 
-            # def bind_text_widget_events(text_widget, char_count_label, limit):
-            #     text_widget.bind(
-            #         "<Key>",
-            #         lambda event: on_text_change(
-            #             event, text_widget, char_count_label, limit
-            #         ),
-            #     )
-            #     text_widget.bind(
-            #         "<Key>",
-            #         lambda event: validate_input(
-            #             event.char, text_widget, char_count_label, limit
-            #         ),
-            #     )
+            def validate_input(char, text_widget, char_count_label, limit):
+                char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
+                if char_count >= limit:
+                    return False
+                char_count_label.config(text=f"{char_count}/{limit}")
+                return True
+
+            def bind_text_widget_events(text_widget, char_count_label, limit):
+                text_widget.bind(
+                    "<Key>",
+                    lambda event: on_text_change(
+                        event, text_widget, char_count_label, limit
+                    ),
+                )
+                text_widget.bind(
+                    "<Key>",
+                    lambda event: validate_input(
+                        event.char, text_widget, char_count_label, limit
+                    ),
+                )
+
+            def add_followup():
+                nonlocal followup_count
+
+                # Check if the follow-up count is a multiple of 6
+                if followup_count % 6 == 0:
+                    # If it's a multiple of 6, resize the window
+                    detail_window.geometry(f"500x{230 + followup_count * 120}+{1000}+{80}")
+
+                # Calculate row and column for the new follow-up
+                row = (followup_count - 1) % 6
+                col = (followup_count - 1) // 6
+
+                new_followup_label = tk.Label(
+                    detail_window, text=f"Follow Up-{followup_count}"
+                )
+                new_followup_label.place(x=10 + col * 250, y=70 + row * 120)
+
+                new_followup_text = tk.Text(
+                    detail_window, wrap=tk.WORD, width=42, height=5
+                )
+                new_followup_text.place(x=10 + col * 250, y=90 + row * 120)
+
+                char_count_label = tk.Label(detail_window, text=f"0/{limit}")
+                char_count_label.place(x=310 + col * 250, y=180 + row * 120)
+
+                # Bind events to the new text widget
+                bind_text_widget_events(new_followup_text, char_count_label, limit)
+
+                followup_count += 1
+
+            limit = 1000
+            followup_count = 1
 
             detail_window = tk.Toplevel(parent)
-            detail_window.geometry(f"500x600+{1000}+{80}")
+            detail_window.geometry(f"500x230+{1000}+{80}")
             detail_window.title("Custom Location Window")
             # lead_no, name = selected_lead_data
             # detail_window.title(f"Lead Details - Lead No: {lead_no}, Name: {name}")
             self.open_detail_windows.append(detail_window)
 
-            # limit = 1000
+            limit = 1000
 
-            close_icon = 0
-            check_img_path = "check.png"
-            check_icon = Image.open(check_img_path)
-            check_icon = check_icon.resize((30, 30))
-            check_icon_photo = ImageTk.PhotoImage(check_icon)
+            self.add_icon = Image.open("asset/Lead_icon/plus.png")
+            self.add_icon = self.add_icon.resize((25, 25))
+            self.add_icon = ImageTk.PhotoImage(self.add_icon)
 
-            btn_bg = "#f0f0f0"
+            add_button = tk.Button(
+                detail_window,
+                image=self.add_icon,
+                borderwidth=0,
+                highlightthickness=0,
+                height=25,
+                width=25,
+                command=add_followup,
+            )
+            add_button.place(x=23, y=8)
+
+            add_text = tk.Label(
+                detail_window,
+                text="Follow Up",
+                fg="black",
+            )
+            add_text.place(x=10, y=35)
+
+            self.ok_icon = Image.open("asset/Lead_icon/check.png")
+            self.ok_icon = self.ok_icon.resize((25, 25))
+            self.ok_icon = ImageTk.PhotoImage(self.ok_icon)
+
             ok_btn = tk.Button(
                 detail_window,
-                image=check_icon_photo,
-                bg=btn_bg,
+                image=self.ok_icon,
                 borderwidth=0,
                 highlightthickness=0,
                 relief="flat",
             )
-            ok_btn.place(x=15, y=8)
+            ok_btn.place(x=92, y=8)
 
             ok_label = tk.Label(detail_window, text="ok")
-            ok_label.place(x=15, y=35)
+            ok_label.place(x=90, y=35)
 
-            check_img_path = os.path.join(
-                os.path.dirname(__file__),  # Get the directory of the current script
-                "asset",
-                "check_icon",
-                "check.png",
-            )
-            close_img_path = "asset/check_icon/close.png"
-            close_icon = Image.open(close_img_path)
-            close_icon = close_icon.resize((30, 30))
-            close_icon_photo = ImageTk.PhotoImage(close_icon)
+            self.close_icon = Image.open("asset/Lead_icon/close.png")
+            self.close_icon = self.close_icon.resize((25, 25))
+            self.close_icon = ImageTk.PhotoImage(self.close_icon)
 
             close_btn = tk.Button(
                 detail_window,
-                image=close_icon_photo,
+                image=self.close_icon,
                 borderwidth=2,
                 highlightthickness=0,
                 relief="flat",
             )
-            close_btn.place(x=100, y=15)
+            close_btn.place(x=450, y=8)
 
             close_label = tk.Label(detail_window, text="close")
-            close_label.place(x=15, y=35)
+            close_label.place(x=450, y=35)
 
-            # separator1 = tk.Frame(detail_window, height=2, width=490, bg="black")
-            # separator1.place(y=55)
+            separator1 = tk.Frame(detail_window, height=2, width=490, bg="black")
+            separator1.place(y=55)
 
-            # followup1_label = tk.Label(detail_window, text="Follow Up-1")
-            # followup1_label.grid(row=0, column=0)
+            followup1_label = tk.Label(detail_window, text="Follow Up-1")
+            followup1_label.place(x=10, y=70)
 
-            # followup1 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            # followup1.grid(row=0, column=1, ipadx=5, pady=5)
+            followup1 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
+            followup1.place(x=10, y=90)
 
-            # char_count_label1 = tk.Label(detail_window, text=f"0/{limit}")
-            # char_count_label1.grid(row=0, column=1, pady=(5, 0), sticky="se")
+            char_count_label1 = tk.Label(detail_window, text=f"0/{limit}")
+            char_count_label1.place(x=310, y=180)
 
-            # bind_text_widget_events(followup1, char_count_label1, limit)
-
-            # followup2_label = tk.Label(detail_window, text="Follow Up-2")
-            # followup2_label.grid(row=1, column=0)
-
-            # followup2 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            # followup2.grid(row=1, column=1, ipadx=5, pady=5)
-
-            # char_count_label2 = tk.Label(detail_window, text=f"0/{limit}")
-            # char_count_label2.grid(row=1, column=1, pady=(5, 0), sticky="se")
-
-            # bind_text_widget_events(followup2, char_count_label2, limit)
-
-            # followup3_lable = tk.Label(detail_window, text="Follow Up-3")
-            # followup3_lable.grid(row=2, column=0)
-
-            # followup3 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            # followup3.grid(row=2, column=1, ipadx=5, pady=5)
-
-            # char_count_label3 = tk.Label(detail_window, text=f"0/{limit}")
-            # char_count_label3.grid(row=2, column=1, pady=(5, 0), sticky="se")
-
-            # bind_text_widget_events(followup3, char_count_label3, limit)
-
-            # followup4_lable = tk.Label(detail_window, text="Follow Up-4")
-            # followup4_lable.grid(row=3, column=0)
-
-            # followup4 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            # followup4.grid(row=3, column=1, ipadx=5, pady=5)
-
-            # char_count_label4 = tk.Label(detail_window, text=f"0/{limit}")
-            # char_count_label4.grid(row=3, column=1, pady=(5, 0), sticky="se")
-
-            # bind_text_widget_events(followup4, char_count_label4, limit)
-
-            # followup5_lable = tk.Label(detail_window, text="Follow Up-5")
-            # followup5_lable.grid(row=4, column=0)
-
-            # followup5 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            # followup5.grid(row=4, column=1, ipadx=5, pady=5)
-
-            # char_count_label5 = tk.Label(detail_window, text=f"0/{limit}")
-            # char_count_label5.grid(row=4, column=1, pady=(5, 0), sticky="se")
-
-            # bind_text_widget_events(followup5, char_count_label5, limit)
-
-            # followup6_lable = tk.Label(detail_window, text="Follow Up-6")
-            # followup6_lable.grid(row=5, column=0)
-
-            # followup6 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            # followup6.grid(row=5, column=1, ipadx=5, pady=5)
-
-            # char_count_label6 = tk.Label(detail_window, text=f"0/{limit}")
-            # char_count_label6.grid(row=5, column=1, pady=(5, 0), sticky="se")
-
-            # bind_text_widget_events(followup6, char_count_label6, limit)
+            bind_text_widget_events(followup1, char_count_label1, limit)
 
         def open_context_menu(event):
             item = self.tree.selection()
@@ -471,7 +464,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.geometry("1515x815+1+6")
 
-    # Bind Alt+F to open_new_window functio
+    # Bind Alt+F to open_new_window function
 
     app = LeadHeader(root)
     root.mainloop()
