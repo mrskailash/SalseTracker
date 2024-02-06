@@ -1,7 +1,7 @@
+import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-import mysql.connector
 from PIL import Image, ImageTk
 
 
@@ -12,6 +12,29 @@ class Closure:
 
     def __init__(self, parent):
         self.parent = parent
+
+        def fetch_lead_data(self):
+            # Connect to SQLite database (replace 'your_database.db' with the actual database file)
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+
+            # Fetch data from the 'leadlist' table
+            cursor.execute(
+                "SELECT id, date, fullname, address, email, status FROM leadlist"
+            )
+            data = cursor.fetchall()
+
+            # Clear existing data in the Treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            # Insert fetched data into the Treeview
+            for row in data:
+                self.tree.insert("", "end", values=row)
+
+            # Commit and close the connection
+            conn.commit()
+            conn.close()
 
         lead_heading = tk.Frame(parent, bg="white", width=1300, height=55)
         lead_heading.pack(side=tk.TOP, anchor=tk.NW)
@@ -111,22 +134,32 @@ class Closure:
                 "Lead No",
                 "Date",
                 "Name",
-                "Contact Person",
-                "Amount",
-                "Assign To",
+                "Address",
+                "Email",
+                "Status",
             ),
             show="headings",
-            height=10,
         )
+        headings = [
+            "Lead No",
+            "Date",
+            "Name",
+            "Address",
+            "Email",
+            "Status",
+        ]
+        for i, headings in enumerate(headings):
+            self.tree.heading(i, text=headings, anchor="center")
 
-        self.tree.heading("Lead No", text="Lead No")
-        self.tree.heading("Date", text="Date")
-        self.tree.heading("Name", text="Name")
-        self.tree.heading("Contact Person", text="Contact Person")
-        self.tree.heading("Amount", text="Amount")
-        self.tree.heading("Assign To", text="Assign To")
+        self.tree.column("Lead No", width=50, anchor="center")
+        self.tree.column("Date", width=50, anchor="center")
+        self.tree.column("Name", width=50, anchor="center")
+        self.tree.column("Address", width=50, anchor="center")
+        self.tree.column("Email", width=50, anchor="center")
+        self.tree.column("Status", width=50, anchor="center")
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
         # Fetch data and populate the table
         # fetch_lead_data()
+        fetch_lead_data(self)

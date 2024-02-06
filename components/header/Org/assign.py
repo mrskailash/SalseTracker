@@ -1,7 +1,7 @@
+import sqlite3
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-import mysql.connector
 from PIL import Image, ImageTk
 
 
@@ -28,6 +28,29 @@ class Assign:
             search_window.resizable(False, False)
             search_window.title("Product Details")
 
+        def fetch_lead_data(self):
+            # Connect to SQLite database (replace 'your_database.db' with the actual database file)
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+
+            # Fetch data from the 'leadlist' table
+            cursor.execute(
+                "SELECT id, date, fullname, address, email, assignto FROM leadlist"
+            )
+            data = cursor.fetchall()
+
+            # Clear existing data in the Treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            # Insert fetched data into the Treeview
+            for row in data:
+                self.tree.insert("", "end", values=row)
+
+            # Commit and close the connection
+            conn.commit()
+            conn.close()
+
         lead_heading = tk.Frame(parent, bg="white", width=1300, height=55)
         lead_heading.pack(side=tk.TOP, anchor=tk.NW)
 
@@ -37,11 +60,8 @@ class Assign:
         lead_heading_menu4 = tk.Frame(lead_heading, bg="white", height=45, width=55)
         lead_heading_menu4.place(x=12, y=10)
 
-        lead_heading_menu5 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu5.place(x=80, y=10)
-
         lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu6.place(x=150, y=10)
+        lead_heading_menu6.place(x=80, y=10)
 
         self.refresh_icon = Image.open("asset/assign/user-check.png")
         self.refresh_icon = self.refresh_icon.resize((25, 25))
@@ -57,7 +77,7 @@ class Assign:
             width=25,
             # command=fetch_lead_data,
         )
-        refresh_button.grid(row=0, column=1, padx=5)
+        refresh_button.grid(row=0, column=1)
 
         refresh_text = tk.Label(
             lead_heading_menu4,
@@ -67,30 +87,6 @@ class Assign:
             font=("Arial", 12),
         )
         refresh_text.grid(row=1, column=1)
-
-        # self.date_filter_icon = Image.open("asset/Lead_icon/calendar.png")
-        # self.date_filter_icon = self.date_filter_icon.resize((25, 25))
-        # self.date_filter_icon = ImageTk.PhotoImage(self.date_filter_icon)
-
-        # date_filter_button = tk.Button(
-        #     lead_heading_menu5,
-        #     image=self.date_filter_icon,
-        #     borderwidth=0,
-        #     highlightthickness=0,
-        #     bg="white",
-        #     height=25,
-        #     width=25,
-        # )
-        # date_filter_button.grid(row=0, column=1, padx=5)
-
-        # date_filter_text = tk.Label(
-        #     lead_heading_menu5,
-        #     text="search",
-        #     fg="black",
-        #     bg="white",
-        #     font=("Arial", 12),
-        # )
-        # date_filter_text.grid(row=1, column=1)
 
         self.search_icon = Image.open("asset/Lead_icon/search.png")
         self.search_icon = self.search_icon.resize((25, 25))
@@ -126,22 +122,31 @@ class Assign:
                 "Lead No",
                 "Date",
                 "Name",
-                "Contact Person",
-                "Amount",
+                "Address",
+                "Email",
                 "Assign To",
             ),
             show="headings",
             height=10,
         )
+        headings = [
+            "Lead No",
+            "Date",
+            "Name",
+            "Address",
+            "Email",
+            "Assign To",
+        ]
+        for i, headings in enumerate(headings):
+            self.tree.heading(i, text=headings, anchor="center")
 
-        self.tree.heading("Lead No", text="Lead No")
-        self.tree.heading("Date", text="Date")
-        self.tree.heading("Name", text="Name")
-        self.tree.heading("Contact Person", text="Contact Person")
-        self.tree.heading("Amount", text="Amount")
-        self.tree.heading("Assign To", text="Assign To")
+        self.tree.column("Lead No", width=50, anchor="center")
+        self.tree.column("Date", width=50, anchor="center")
+        self.tree.column("Name", width=50, anchor="center")
+        self.tree.column("Address", width=50, anchor="center")
+        self.tree.column("Email", width=50, anchor="center")
+        self.tree.column("Assign To", width=50, anchor="center")
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
-        # Fetch data and populate the table
-        # fetch_lead_data()
+        fetch_lead_data(self)

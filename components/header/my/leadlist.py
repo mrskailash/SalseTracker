@@ -11,33 +11,28 @@ class LeadHeader:
     search_icon = None
     date_filter_icon = None
     refresh_icon = None
+    add_icon = None
+    ok_icon = None
+    close_icon = None
 
     def __init__(self, parent):
         self.parent = parent
         self.open_detail_windows = []
 
-        def center_window(window, width, height):
-            screen_width = window.winfo_screenwidth()
-            screen_height = window.winfo_screenheight()
-            x_coordinate = int((screen_width - width) / 2)
-            y_coordinate = int((screen_height - height) / 2)
-            window.geometry(f"{width}x{height}+{x_coordinate}+{y_coordinate}")
-
         def search_window():
             search_window = tk.Toplevel(parent)
             search_window.title("Search Window")
-            search_window.geometry("500x200")
-            center_window(search_window, 500, 200)
+            search_window.geometry("450x170+1000+80")
             search_window.resizable(False, False)
 
-            name_label = tk.Label(search_window, text="Name")
-            name_label.grid(row=0, column=0, padx=5)
+            name_label = tk.Label(search_window, text="Name", font=("Arial", 12))
+            name_label.grid(row=0, column=0, padx=5, pady=10)
 
             name_entry = tk.Entry(search_window, width=25)
-            name_entry.grid(row=0, column=1, padx=5)
+            name_entry.grid(row=0, column=1, padx=5, pady=10)
 
-            text_label = tk.Label(search_window, text="By Text")
-            text_label.grid(row=1, column=0, padx=5)
+            text_label = tk.Label(search_window, text="By Text", font=("Arial", 12))
+            text_label.grid(row=1, column=0, pady=10)
 
             by_text_option = [
                 "(none)",
@@ -48,39 +43,49 @@ class LeadHeader:
                 "telephone",
             ]
             text_combobox = ttk.Combobox(search_window, values=by_text_option)
-            text_combobox.grid(row=1, column=1, padx=5, pady=5)
+            text_combobox.grid(row=1, column=1, padx=5, pady=10)
 
-            dropdown_label = tk.Label(search_window, text="By Dropdown")
-            dropdown_label.grid(row=2, column=0)
+            text_entry = tk.Entry(search_window, width=25)
+            text_entry.grid(row=1, column=2, padx=5, pady=10)
+
+            dropdown_label = tk.Label(
+                search_window, text="By Dropdown", font=("Arial", 12)
+            )
+            dropdown_label.grid(row=2, column=0, pady=10)
 
             dropdown_option = ["(none)", "Closure", "Source"]
             dropdown_combobox = ttk.Combobox(search_window, values=dropdown_option)
-            dropdown_combobox.grid(row=2, column=1)
+            dropdown_combobox.grid(row=2, column=1, pady=10)
 
             dropdown_sub_option = ["-OPEN-", "close", "won", "lost"]
             dropdown_sub_combobox = ttk.Combobox(
                 search_window, values=dropdown_sub_option
             )
-            dropdown_sub_combobox.grid(row=2, column=2)
+            dropdown_sub_combobox.grid(row=2, column=2, pady=10)
+
+            search_btn = tk.Button(search_window, text="Search", font=("Arial", 12))
+            search_btn.place(x=365, y=135)
 
         def show_date_window():
             date_window = tk.Toplevel(parent)
             date_window.title("Date Filter Window")
-            date_window.geometry("500x100")
-            center_window(date_window, 500, 100)
-            date_window.resizable(False, False)
+            date_window.geometry("450x100+1000+80")
+            # date_window.resizable(False, False)
 
             from_label = tk.Label(date_window, text="From")
-            from_label.grid(row=0, column=0)
+            from_label.grid(row=0, column=0, pady=10, padx=5)
 
             from_date_entry = DateEntry(date_window, width=25)
-            from_date_entry.grid(row=0, column=1)
+            from_date_entry.grid(row=0, column=1, pady=10, padx=5)
 
-            to_label = tk.Label(date_window, text="to")
+            to_label = tk.Label(date_window, text="to", pady=10, padx=5)
             to_label.grid(row=0, column=2)
 
             to_date_entry = DateEntry(date_window, width=25)
-            to_date_entry.grid(row=0, column=3)
+            to_date_entry.grid(row=0, column=3, pady=10, padx=5)
+
+            search_btn = tk.Button(date_window, text="Search", font=("Arial", 12))
+            search_btn.place(x=210, y=50)
 
         def fetch_lead_data():
             # Connect to MySQL server
@@ -144,111 +149,98 @@ class LeadHeader:
         def on_double_click(event):
             item = self.tree.selection()
             if item:
-                selected_lead_data = self.tree.item(item, "values")[
-                    :2
-                ]  # Extracting lead number and name
+                selected_lead_data = self.tree.item(item, "values")[:2]
             open_detail_window(selected_lead_data)
 
         def open_detail_window(selected_lead_data):
-            def on_text_change(event, text_widget, char_count_label, limit):
-                char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
-                char_count_label.config(text=f"{char_count}/{limit}")
-
-            def validate_input(char, text_widget, char_count_label, limit):
-                char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
-                if char_count >= limit:
-                    return False
-                char_count_label.config(text=f"{char_count}/{limit}")
-                return True
-
-            def bind_text_widget_events(text_widget, char_count_label, limit):
-                text_widget.bind(
-                    "<Key>",
-                    lambda event: on_text_change(
-                        event, text_widget, char_count_label, limit
-                    ),
-                )
-                text_widget.bind(
-                    "<Key>",
-                    lambda event: validate_input(
-                        event.char, text_widget, char_count_label, limit
-                    ),
-                )
+            def close_detail_window():
+                self.open_detail_windows.remove(detail_window)
+                detail_window.destroy()
 
             detail_window = tk.Toplevel(parent)
-            detail_window.geometry(f"500x600+{1000}+{80}")
+            detail_window.geometry(f"500x800+{1000}+{10}")
             detail_window.title("Custom Location Window")
             lead_no, name = selected_lead_data
             detail_window.title(f"Lead Details - Lead No: {lead_no}, Name: {name}")
+            # Close any existing detail window
+            if self.open_detail_windows:
+                existing_window = self.open_detail_windows[0]
+                existing_window.destroy()
+                self.open_detail_windows.clear()
+            self.open_detail_windows.append(detail_window)
             self.open_detail_windows.append(detail_window)
 
-            limit = 1000
+            self.ok_icon = Image.open("asset/Lead_icon/check.png")
+            self.ok_icon = self.ok_icon.resize((25, 25))
+            self.ok_icon = ImageTk.PhotoImage(self.ok_icon)
+
+            ok_btn = tk.Button(
+                detail_window,
+                image=self.ok_icon,
+                borderwidth=0,
+                highlightthickness=0,
+                relief="flat",
+            )
+            ok_btn.place(x=12, y=8)
+
+            ok_label = tk.Label(detail_window, text="ok")
+            ok_label.place(x=10, y=35)
+
+            self.close_icon = Image.open("asset/Lead_icon/close.png")
+            self.close_icon = self.close_icon.resize((25, 25))
+            self.close_icon = ImageTk.PhotoImage(self.close_icon)
+
+            close_btn = tk.Button(
+                detail_window,
+                image=self.close_icon,
+                borderwidth=2,
+                highlightthickness=0,
+                relief="flat",
+                command=close_detail_window,
+            )
+            close_btn.place(x=450, y=8)
+
+            close_label = tk.Label(detail_window, text="close")
+            close_label.place(x=450, y=35)
+
+            separator1 = tk.Frame(detail_window, height=2, width=490, bg="black")
+            separator1.place(y=55)
 
             followup1_label = tk.Label(detail_window, text="Follow Up-1")
-            followup1_label.grid(row=0, column=0)
+            followup1_label.place(x=10, y=70)
 
-            followup1 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            followup1.grid(row=0, column=1, ipadx=5, pady=5)
-
-            char_count_label1 = tk.Label(detail_window, text=f"0/{limit}")
-            char_count_label1.grid(row=0, column=1, pady=(5, 0), sticky="se")
-
-            bind_text_widget_events(followup1, char_count_label1, limit)
+            followup1 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
+            followup1.place(x=10, y=90)
 
             followup2_label = tk.Label(detail_window, text="Follow Up-2")
-            followup2_label.grid(row=1, column=0)
+            followup2_label.place(x=10, y=190)
 
-            followup2 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            followup2.grid(row=1, column=1, ipadx=5, pady=5)
+            followup2 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
+            followup2.place(x=10, y=210)
 
-            char_count_label2 = tk.Label(detail_window, text=f"0/{limit}")
-            char_count_label2.grid(row=1, column=1, pady=(5, 0), sticky="se")
+            followup3_label = tk.Label(detail_window, text="Follow Up-3")
+            followup3_label.place(x=10, y=310)
 
-            bind_text_widget_events(followup2, char_count_label2, limit)
+            followup3 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
+            followup3.place(x=10, y=330)
 
-            followup3_lable = tk.Label(detail_window, text="Follow Up-3")
-            followup3_lable.grid(row=2, column=0)
+            followup4_label = tk.Label(detail_window, text="Follow Up-4")
+            followup4_label.place(x=10, y=430)
 
-            followup3 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            followup3.grid(row=2, column=1, ipadx=5, pady=5)
+            followup4 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
+            followup4.place(x=10, y=450)
 
-            char_count_label3 = tk.Label(detail_window, text=f"0/{limit}")
-            char_count_label3.grid(row=2, column=1, pady=(5, 0), sticky="se")
+            followup5_label = tk.Label(detail_window, text="Follow Up-5")
+            followup5_label.place(x=10, y=550)
 
-            bind_text_widget_events(followup3, char_count_label3, limit)
+            followup5 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
+            followup5.place(x=10, y=570)
 
-            followup4_lable = tk.Label(detail_window, text="Follow Up-4")
-            followup4_lable.grid(row=3, column=0)
+            followup6_label = tk.Label(detail_window, text="Follow Up-6")
+            followup6_label.place(x=10, y=670)
 
-            followup4 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            followup4.grid(row=3, column=1, ipadx=5, pady=5)
-
-            char_count_label4 = tk.Label(detail_window, text=f"0/{limit}")
-            char_count_label4.grid(row=3, column=1, pady=(5, 0), sticky="se")
-
-            bind_text_widget_events(followup4, char_count_label4, limit)
-
-            followup5_lable = tk.Label(detail_window, text="Follow Up-5")
-            followup5_lable.grid(row=4, column=0)
-
-            followup5 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            followup5.grid(row=4, column=1, ipadx=5, pady=5)
-
-            char_count_label5 = tk.Label(detail_window, text=f"0/{limit}")
-            char_count_label5.grid(row=4, column=1, pady=(5, 0), sticky="se")
-
-            bind_text_widget_events(followup5, char_count_label5, limit)
-
-            followup6_lable = tk.Label(detail_window, text="Follow Up-6")
-            followup6_lable.grid(row=5, column=0)
-
-            followup6 = tk.Text(detail_window, wrap=tk.WORD, width=42, height=5)
-            followup6.grid(row=5, column=1, ipadx=5, pady=5)
-
-            char_count_label6 = tk.Label(detail_window, text=f"0/{limit}")
-            char_count_label6.grid(row=5, column=1, pady=(5, 0), sticky="se")
-
-            bind_text_widget_events(followup6, char_count_label6, limit)
+            followup6 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
+            followup6.place(x=10, y=690)
 
         def open_context_menu(event):
             item = self.tree.selection()
@@ -285,7 +277,7 @@ class LeadHeader:
             bg="white",
             height=25,
             width=25,
-            command=fetch_lead_data,
+            command=populate_treeview,
         )
         refresh_button.grid(row=0, column=1, padx=5)
 

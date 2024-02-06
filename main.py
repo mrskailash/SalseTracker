@@ -139,8 +139,8 @@ class SalesTracker:
                 self.closure_container.pack(fill=tk.BOTH, expand=True)
             elif page_type == "smart report":
                 self.report_container.pack(fill=tk.BOTH, expand=True)
-            elif page_type == "leads":
-                self.lead_container.pack(fill=tk.BOTH, expand=True)
+            # elif page_type == "leads":
+            #     self.lead_container.pack(fill=tk.BOTH, expand=True)
             elif page_type == "assign":
                 self.assign_container.pack(fill=tk.BOTH, expand=True)
             elif page_type == "employee":
@@ -195,7 +195,7 @@ class SalesTracker:
         home_menu.add_command(
             label="Dashboard",
         )
-        org_menu.add_command(label="Leads", command=lambda: show_page("leads"))
+        # org_menu.add_command(label="Leads", command=lambda: show_page("leads"))
         org_menu.add_command(label="Assign", command=lambda: show_page("assign"))
         org_menu.add_cascade(label="Home", menu=home_menu)
 
@@ -240,12 +240,6 @@ class SalesTracker:
             label="Backup",
         )
         admin_menu.add_cascade(label="Data", menu=data_menu)
-        admin_menu.add_command(
-            label="Force Logout", command=lambda: show_page("assign")
-        )
-
-        help_menu = tk.Menu(header_frame, tearoff=0, font=menu_font)
-        help_menu.add_command(label="help", command=lambda: show_page("assign"))
         master_menu_button = tk.Button(
             header_frame,
             text="Master",
@@ -269,18 +263,6 @@ class SalesTracker:
             command=lambda: show_menu(admin_menu, admin_menu_button),
         )
         admin_menu_button.pack(side=tk.LEFT)
-
-        help_menu_button = tk.Button(
-            header_frame,
-            text="help",
-            font="Arial 12",
-            bg="gray",
-            borderwidth=0,
-            padx=10,
-            pady=6,
-            command=lambda: show_menu(help_menu, help_menu_button),
-        )
-        help_menu_button.pack(side=tk.LEFT)
 
         self.lead_list_container = tk.Frame(master, bg="white", bd=1, relief=tk.SOLID)
         self.lead_list_container.pack(fill=tk.BOTH, expand=True)

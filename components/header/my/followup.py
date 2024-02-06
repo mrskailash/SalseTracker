@@ -1,7 +1,9 @@
+import sqlite3
 import tkinter as tk
 from tkinter import ttk
 
 from PIL import Image, ImageTk
+from tkcalendar import DateEntry
 
 
 class FollowUp:
@@ -13,6 +15,113 @@ class FollowUp:
 
     def __init__(self, parent):
         self.parent = parent
+
+        def search_window():
+            search_window = tk.Toplevel(parent)
+            search_window.title("Search Window")
+            search_window.geometry("450x170+1000+80")
+            search_window.resizable(False, False)
+
+            name_label = tk.Label(search_window, text="Name", font=("Arial", 12))
+            name_label.grid(row=0, column=0, padx=5, pady=10)
+
+            name_entry = tk.Entry(search_window, width=25)
+            name_entry.grid(row=0, column=1, padx=5, pady=10)
+
+            text_label = tk.Label(search_window, text="By Text", font=("Arial", 12))
+            text_label.grid(row=1, column=0, pady=10)
+
+            by_text_option = [
+                "(none)",
+                "address",
+                "contact person",
+                "email",
+                "notes",
+                "telephone",
+            ]
+            text_combobox = ttk.Combobox(search_window, values=by_text_option)
+            text_combobox.grid(row=1, column=1, padx=5, pady=10)
+
+            text_entry = tk.Entry(search_window, width=25)
+            text_entry.grid(row=1, column=2, padx=5, pady=10)
+
+            dropdown_label = tk.Label(
+                search_window, text="By Dropdown", font=("Arial", 12)
+            )
+            dropdown_label.grid(row=2, column=0, pady=10)
+
+            dropdown_option = ["(none)", "Closure", "Source"]
+            dropdown_combobox = ttk.Combobox(search_window, values=dropdown_option)
+            dropdown_combobox.grid(row=2, column=1, pady=10)
+
+            dropdown_sub_option = ["-OPEN-", "close", "won", "lost"]
+            dropdown_sub_combobox = ttk.Combobox(
+                search_window, values=dropdown_sub_option
+            )
+            dropdown_sub_combobox.grid(row=2, column=2, pady=10)
+
+            search_btn = tk.Button(search_window, text="Search", font=("Arial", 12))
+            search_btn.place(x=365, y=135)
+
+        def show_date_window():
+            date_window = tk.Toplevel(parent)
+            date_window.title("Date Filter Window")
+            date_window.geometry("450x100+1000+80")
+            # date_window.resizable(False, False)
+
+            from_label = tk.Label(date_window, text="From")
+            from_label.grid(row=0, column=0, pady=10, padx=5)
+
+            from_date_entry = DateEntry(date_window, width=25)
+            from_date_entry.grid(row=0, column=1, pady=10, padx=5)
+
+            to_label = tk.Label(date_window, text="to", pady=10, padx=5)
+            to_label.grid(row=0, column=2)
+
+            to_date_entry = DateEntry(date_window, width=25)
+            to_date_entry.grid(row=0, column=3, pady=10, padx=5)
+
+            search_btn = tk.Button(date_window, text="Search", font=("Arial", 12))
+            search_btn.place(x=210, y=50)
+
+        def fetch_lead_data():
+            # Connect to MySQL server
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+
+            # Fetch data from the leadlist table
+            cursor.execute("SELECT id,  date, fullname,address FROM leadlist")
+
+            lead_data = cursor.fetchall()
+
+            # Close the database connection
+            conn.commit()
+            conn.close()
+            # Clear existing data in the treeview
+            self.tree.delete(*self.tree.get_children())
+
+            return lead_data
+
+        def populate_treeview():
+            lead_data = fetch_lead_data()
+
+            for lead_row in lead_data:
+                (
+                    lead_no,
+                    date,
+                    name,
+                    address,
+                ) = lead_row
+                self.tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        lead_no,
+                        date,
+                        name,
+                        address,
+                    ),
+                )
 
         def on_double_click(event):
             item = self.tree.selection()
@@ -27,48 +136,6 @@ class FollowUp:
                 y_coordinate = int((screen_height - height) / 2)
                 window.geometry(f"{width}x{height}+{x_coordinate}+{y_coordinate}")
 
-            def on_text_change(event, text_widget, char_count_label, limit):
-                char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
-                char_count_label.config(text=f"{char_count}/{limit}")
-
-            def validate_input(char, text_widget, char_count_label, limit):
-                char_count = len(text_widget.get("1.0", "end-1c").replace("\n", ""))
-                if char_count >= limit:
-                    return False
-                char_count_label.config(text=f"{char_count}/{limit}")
-                return True
-
-            def bind_text_widget_events(text_widget, char_count_label, limit):
-                text_widget.bind(
-                    "<Key>",
-                    lambda event: on_text_change(
-                        event, text_widget, char_count_label, limit
-                    ),
-                )
-                text_widget.bind(
-                    "<Key>",
-                    lambda event: validate_input(
-                        event.char, text_widget, char_count_label, limit
-                    ),
-                )
-
-            # def show_box(box_number):
-            #     # Hide all containers
-            #     details_container.place_forget()
-            #     # product_container.place_forget()
-            #     # note_container.place_forget()
-
-            #     history_btn.config(bg="lightgray" if box_number != 1 else "#0086B3")
-            #     # product_btn.config(bg="lightgray" if box_number != 2 else "#0086B3")
-            #     # notes_btn.config(bg="lightgray" if box_number != 3 else "#0086B3")
-            #     # Display the selected container
-            #     if box_number == 1:
-            #         details_container.place(height=450, width=500)
-            #     # elif box_number == 3:
-            #     #     note_container.place(height=450, width=500)
-            #     # elif box_number == 2:
-            #     #     product_container.place(x=0, y=40, height=600, width=1500)
-
             detail_window = tk.Toplevel(parent)
             detail_window.geometry("500x450")
             center_window(detail_window, 500, 450)
@@ -82,19 +149,8 @@ class FollowUp:
                 font=("Arial", 12),
                 height=1,
                 width=12,
-                # command=lambda: show_box(1),
             )
             history_btn.pack(side=tk.LEFT, anchor="n")
-
-            # notes_btn = tk.Button(
-            #     detail_window,
-            #     text="Notes",
-            #     font=("Arial", 12),
-            #     height=1,
-            #     width=12,
-            #     command=lambda: show_box(3),
-            # )
-            # notes_btn.pack(side=tk.LEFT, anchor="n")
 
             details_container = tk.Frame(
                 detail_window,
@@ -133,18 +189,6 @@ class FollowUp:
 
             info_container.pack(fill=tk.BOTH, expand=True)
             info_container.grid_propagate(False)
-
-            # note_container = tk.Frame(
-            #     lead_entry,
-            #     height=450,
-            #     width=500,
-            #     bg="black",
-            #     borderwidth=2,
-            #     relief=tk.GROOVE,
-            #     highlightthickness=-0,
-            # )
-            # note_container.place(x=0)
-            # note_container.place_forget()
 
         lead_heading = tk.Frame(parent, bg="white", width=1505, height=55)
         lead_heading.pack(side=tk.TOP, anchor=tk.NW)
@@ -204,7 +248,6 @@ class FollowUp:
             bg="white",
             height=25,
             width=25,
-            # command=open_detail_window,
         )
         view_button.grid(row=0, column=1, padx=5)
 
@@ -229,7 +272,7 @@ class FollowUp:
             bg="white",
             height=25,
             width=25,
-            # command=fetch_lead_data,
+            command=populate_treeview,
         )
         refresh_button.grid(row=0, column=1, padx=5)
 
@@ -254,6 +297,7 @@ class FollowUp:
             bg="white",
             height=25,
             width=25,
+            command=show_date_window,
         )
         date_filter_button.grid(row=0, column=1, padx=5)
 
@@ -278,7 +322,7 @@ class FollowUp:
             bg="white",
             height=25,
             width=25,
-            # command=search_window,
+            command=search_window,
         )
         search_button.grid(row=0, column=1, padx=5)
 
@@ -299,8 +343,8 @@ class FollowUp:
             parent,
             columns=(
                 "Lead No",
-                "Name",
                 "Date",
+                "Name",
                 "Location",
                 "Follow up 1",
                 "Follow up 2",
@@ -315,8 +359,8 @@ class FollowUp:
 
         headings = [
             "Lead No",
-            "Name",
             "Date",
+            "Name",
             "Location",
             "Follow up 1",
             "Follow up 2",
@@ -328,8 +372,8 @@ class FollowUp:
         for i, headings in enumerate(headings):
             self.tree.heading(i, text=headings, anchor="center")
         self.tree.column("Lead No", width=50, anchor="center")
-        self.tree.column("Name", width=50, anchor="center")
         self.tree.column("Date", width=50, anchor="center")
+        self.tree.column("Name", width=50, anchor="center")
         self.tree.column("Location", width=50, anchor="center")
         self.tree.column("Follow up 1", width=50, anchor="center")
         self.tree.column("Follow up 2", width=50, anchor="center")
@@ -340,68 +384,4 @@ class FollowUp:
         self.tree.bind("<Double-1>", on_double_click)
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
-        example_data = [
-            (
-                "1",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "2",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "3",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "4",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "5",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "6",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "7",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "8",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "9",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-            (
-                "10",
-                "John Doe",
-                "2023-01-23",
-                "usa",
-            ),
-        ]
-
-        for data in example_data:
-            self.tree.insert("", "end", values=data)
+        populate_treeview()
