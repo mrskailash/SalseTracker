@@ -14,6 +14,7 @@ class LeadHeader:
     add_icon = None
     ok_icon = None
     close_icon = None
+    filter_icon = None
 
     followup1 = None
     followup2 = None
@@ -121,15 +122,63 @@ class LeadHeader:
 
         def display_filtered_data(data):
             date_window.destroy()
+
+            def show_menu(filtermenu, button):
+                filtermenu.post(
+                    button.winfo_rootx(), button.winfo_rooty() + button.winfo_height()
+                )
+
             filtered_data_window = tk.Toplevel(parent)
-            filtered_data_window.title("Date Filtered Data")
+            filtered_data_window.title("Short Data")
             filtered_data_window.geometry("1000x400+515+50")
 
+            menu_font = ("Arial", 12)
             short_box = tk.Frame(
-                filtered_data_window, height=70, width=1000, bg="black"
+                filtered_data_window, height=50, width=1000, bg="white"
             )
-            short_box.pack(side=tk.TOP, anchor="nw", fill="y")
-            # Create Treeview widget
+            short_box.pack(side=tk.TOP, anchor="nw", fill="y", ipady=5)
+            filtermenu = tk.Menu(short_box, tearoff=0, font=menu_font)
+            id_menu = tk.Menu(filtermenu, tearoff=0)
+            filtermenu.add_cascade(label="ID Options", menu=id_menu)
+            id_menu.add_command(
+                label="Ascending",
+            )
+            id_menu.add_command(
+                label="Descending",
+            )
+
+            status_menu = tk.Menu(filtermenu, tearoff=0)
+            filtermenu.add_cascade(label="Status Options", menu=status_menu)
+            status_options = [
+                "Open",
+                "Unassigned",
+                "Running",
+                "CloseWon",
+                "Lost",
+                "Junk",
+            ]
+            for option in status_options:
+                status_menu.add_command(label=option)
+
+            # Add sub-options for the "Assign" option
+            assign_menu = tk.Menu(filtermenu, tearoff=0)
+            filtermenu.add_cascade(label="Assign Options", menu=assign_menu)
+            assign_options = ["Sales1", "Sales2"]
+            for option in assign_options:
+                assign_menu.add_command(label=option)
+
+            filtermenu_button = tk.Button(
+                short_box,
+                text="My",
+                font="Arial 12",
+                bg="gray",
+                borderwidth=0,
+                padx=10,
+                pady=6,
+                command=lambda: show_menu(filtermenu, filtermenu_button),
+            )
+            filtermenu_button.pack(side=tk.LEFT)
+
             tree = ttk.Treeview(
                 filtered_data_window,
                 columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),

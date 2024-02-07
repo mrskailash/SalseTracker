@@ -30,17 +30,14 @@ class LeadDetails:
             remark_entry,
             company_entry,
         ):
-            global fetched_id
-            # Connect to MySQL server
             conn = sqlite3.connect("salestracker.db")
             cursor = conn.cursor()
 
             # Insert data into the database using the fetched ID and formatted date
             cursor.execute(
-                "INSERT INTO leadlist (id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "INSERT INTO leadlist (date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    fetched_id,
                     formatted_date,
                     name_entry,
                     address_entry,
@@ -57,15 +54,25 @@ class LeadDetails:
             )
 
             # Commit changes and close the database connection
-            conn.commit()
-            conn.close()
+
+            cursor = conn.cursor()
+            cursor.execute("SELECT last_insert_rowid()")
+            last_id = cursor.fetchone()[0]
+
             # Show a message box indicating successful data storage
             tk.messagebox.showinfo(
-                "Success", "Data stored successfully for ID: {}".format(fetched_id)
+                "Success", "Data stored successfully for ID: {}".format(last_id)
             )
 
+            # Update fetched_id and leadNo_entry
+            self.fetched_id = last_id
+            self.leadNo_entry.delete(0, tk.END)
+            self.leadNo_entry.insert(0, str(last_id))
+
+            conn.commit()
+            conn.close()
             # Reset fetched_id for the next entry
-            fetched_id = 0
+            self.fetched_id = 0
             clear_input_fields(
                 self.date_entry,
                 self.name_entry,
@@ -107,8 +114,6 @@ class LeadDetails:
             company_entry.delete(0, tk.END)
 
         def clear_entries():
-            global fetched_id
-            fetched_id = 0  # Reset fetched_id before clearing the fields
             self.name_entry.delete(0, tk.END)
             self.address_entry.delete(0, tk.END)
             self.telephone_entry.delete(0, tk.END)
@@ -143,6 +148,7 @@ class LeadDetails:
             conn = sqlite3.connect("salestracker.db")
             cursor = conn.cursor()
             # Fetch data from different tables
+
             cursor.execute("SELECT Sourcename FROM source")
             sources = [rows[0] for rows in cursor.fetchall()]
 
@@ -155,10 +161,11 @@ class LeadDetails:
             cursor.execute("SELECT productname FROM products")
             product_names = [rows[0] for rows in cursor.fetchall()]
 
+            # Close the database connection
             cursor.execute("SELECT MAX(id) FROM leadlist")
             max_id = cursor.fetchone()[0]
             fetched_id = max_id + 1 if max_id else 1
-            # Close the database connection
+
             conn.commit()
             conn.close()
 
@@ -338,13 +345,15 @@ class LeadDetails:
         )
         leadNo_lable.place(x=10, y=10)
 
-        leadNo_entry = tk.Entry(
+        self.leadNo_entry = tk.Entry(
             info_container, borderwidth=2, highlightthickness=-0, relief=tk.GROOVE
         )
-        leadNo_entry.place(x=120, y=12)
+        self.leadNo_entry.place(x=120, y=12)
 
-        fetch_data(leadNo_entry)
-        leadNo_entry.bind("<KeyRelease>", lambda event: fetch_data(leadNo_entry))
+        fetch_data(self.leadNo_entry)
+        self.leadNo_entry.bind(
+            "<KeyRelease>", lambda event: fetch_data(self.leadNo_entry)
+        )
         date_lable = tk.Label(
             info_container, text="Date", bg="white", fg="black", font=("Arial", 12)
         )
@@ -442,7 +451,7 @@ class LeadDetails:
         )
         self.email_entry.place(x=120, y=270)
 
-        data_tuple = fetch_data(leadNo_entry)
+        data_tuple = fetch_data(self.leadNo_entry)
         source_lable = tk.Label(
             info_container,
             text="Source ",
