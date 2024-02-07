@@ -1,8 +1,8 @@
 import sqlite3
 import tkinter as tk
-from tkinter import ttk
+from datetime import datetime
+from tkinter import messagebox, ttk
 
-import mysql.connector
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry
 
@@ -14,6 +14,13 @@ class LeadHeader:
     add_icon = None
     ok_icon = None
     close_icon = None
+
+    followup1 = None
+    followup2 = None
+    followup3 = None
+    followup4 = None
+    followup5 = None
+    followup6 = None
 
     def __init__(self, parent):
         self.parent = parent
@@ -67,6 +74,7 @@ class LeadHeader:
             search_btn.place(x=365, y=135)
 
         def show_date_window():
+            global date_window
             date_window = tk.Toplevel(parent)
             date_window.title("Date Filter Window")
             date_window.geometry("450x100+1000+80")
@@ -84,8 +92,74 @@ class LeadHeader:
             to_date_entry = DateEntry(date_window, width=25)
             to_date_entry.grid(row=0, column=3, pady=10, padx=5)
 
-            search_btn = tk.Button(date_window, text="Search", font=("Arial", 12))
+            def search_data():
+                # Get the selected dates
+                from_date = from_date_entry.get_date()
+                to_date = to_date_entry.get_date()
+
+                # Fetch data from the database based on the converted date range
+                conn = sqlite3.connect(
+                    "salestracker.db"
+                )  # Change this to your database file
+                cursor = conn.cursor()
+
+                # Modify the SQL query to fit your table structure
+                query = f"SELECT id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE date BETWEEN ? AND ?"
+                cursor.execute(query, (from_date, to_date))
+
+                data = cursor.fetchall()
+
+                conn.close()
+
+                # Open the new window to display the filtered data
+                display_filtered_data(data)
+
+            search_btn = tk.Button(
+                date_window, text="Search", font=("Arial", 12), command=search_data
+            )
             search_btn.place(x=210, y=50)
+
+        def display_filtered_data(data):
+            date_window.destroy()
+            filtered_data_window = tk.Toplevel(parent)
+            filtered_data_window.title("Date Filtered Data")
+            filtered_data_window.geometry("1000x400+515+50")
+
+            short_box = tk.Frame(
+                filtered_data_window, height=70, width=1000, bg="black"
+            )
+            short_box.pack(side=tk.TOP, anchor="nw", fill="y")
+            # Create Treeview widget
+            tree = ttk.Treeview(
+                filtered_data_window,
+                columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+                show="headings",
+            )
+
+            # Set column names
+            tree.heading(1, text="ID")
+            tree.heading(2, text="Date")
+            tree.heading(3, text="Fullname")
+            tree.heading(4, text="Address")
+            tree.heading(5, text="Mobile No")
+            tree.heading(6, text="Email")
+            tree.heading(7, text="Source")
+            tree.heading(8, text="Assign To")
+            tree.heading(9, text="Status")
+            tree.heading(10, text="Ref By")
+            tree.heading(11, text="Products")
+            tree.heading(12, text="Remark")
+            tree.heading(13, text="Company")
+
+            # Set column width
+            for i in range(1, 14):
+                tree.column(i, width=50, anchor="center")
+
+            # Insert data into the tree
+            for row in data:
+                tree.insert("", "end", values=row)
+
+            tree.pack(fill="both", expand=True)
 
         def fetch_lead_data():
             # Connect to MySQL server
@@ -147,21 +221,115 @@ class LeadHeader:
                 )
 
         def on_double_click(event):
+
             item = self.tree.selection()
             if item:
                 selected_lead_data = self.tree.item(item, "values")[:2]
             open_detail_window(selected_lead_data)
 
         def open_detail_window(selected_lead_data):
-            def close_detail_window():
-                self.open_detail_windows.remove(detail_window)
-                detail_window.destroy()
-
             detail_window = tk.Toplevel(parent)
             detail_window.geometry(f"500x800+{1000}+{10}")
             detail_window.title("Custom Location Window")
             lead_no, name = selected_lead_data
             detail_window.title(f"Lead Details - Lead No: {lead_no}, Name: {name}")
+            followup_menus = []
+
+            def add_followup_context_menu(widget, followup_index):
+                followup_menu = tk.Menu(detail_window, tearoff=0)
+
+                # Fetch existing follow-up data from the database
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                cursor.execute(
+                    f"SELECT followup{followup_index} FROM leadlist WHERE id=?",
+                    (lead_no,),
+                )
+                followup_data = cursor.fetchone()
+                conn.close()
+
+                # Check if follow-up data exists and add "Edit" option accordingly
+                if followup_data and followup_data[0]:
+                    followup_menu.add_command(
+                        label="Edit",
+                        command=lambda: enable_edit(followup_index),
+                    )
+                followup_menu.add_command(label="Save", command=save_followup)
+                widget.bind(
+                    "<Button-3>",
+                    lambda event: followup_menu.post(event.x_root, event.y_root),
+                )
+
+                followup_menus.append(followup_menu)
+
+            def enable_edit(followup_index):
+                followup_widget = [
+                    followup1,
+                    followup2,
+                    followup3,
+                    followup4,
+                    followup5,
+                    followup6,
+                ][followup_index - 1]
+                followup_widget.config(state=tk.NORMAL)
+
+            def close_detail_window():
+                self.open_detail_windows.remove(detail_window)
+                detail_window.destroy()
+
+            def save_followup():
+                followup_data = [
+                    followup1.get("1.0", tk.END).strip(),
+                    followup2.get("1.0", tk.END).strip(),
+                    followup3.get("1.0", tk.END).strip(),
+                    followup4.get("1.0", tk.END).strip(),
+                    followup5.get("1.0", tk.END).strip(),
+                    followup6.get("1.0", tk.END).strip(),
+                ]
+
+                # Save follow-up data to the database
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                lead_no, _ = selected_lead_data
+
+                for i, followup in enumerate(followup_data, start=1):
+                    column_name = f"followup{i}"
+                    cursor.execute(
+                        f"UPDATE leadlist SET {column_name} = ? WHERE id = ?",
+                        (followup, lead_no),
+                    )
+
+                conn.commit()
+                conn.close()
+
+                messagebox.showinfo("Success", "Follow-up data saved successfully.")
+
+            def fetch_followup():
+
+                # Fetch existing follow-up data from the database
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT followup1, followup2, followup3, followup4, followup5, followup6 FROM leadlist WHERE id=?",
+                    (lead_no,),
+                )
+                followup_data = cursor.fetchone()
+                conn.close()
+
+                # Update Text widgets with the fetched follow-up data
+                followups = [
+                    followup1,
+                    followup2,
+                    followup3,
+                    followup4,
+                    followup5,
+                    followup6,
+                ]
+                for i, followup_widget in enumerate(followups):
+                    followup_widget.insert(tk.END, followup_data[i])
+                    if followup_data[i]:
+                        followup_widget.config(state=tk.DISABLED)
+
             # Close any existing detail window
             if self.open_detail_windows:
                 existing_window = self.open_detail_windows[0]
@@ -180,6 +348,7 @@ class LeadHeader:
                 borderwidth=0,
                 highlightthickness=0,
                 relief="flat",
+                command=save_followup,
             )
             ok_btn.place(x=12, y=8)
 
@@ -241,6 +410,14 @@ class LeadHeader:
 
             followup6 = tk.Text(detail_window, wrap=tk.WORD, width=57, height=6)
             followup6.place(x=10, y=690)
+
+            add_followup_context_menu(followup1, 1)
+            add_followup_context_menu(followup2, 2)
+            add_followup_context_menu(followup3, 3)
+            add_followup_context_menu(followup4, 4)
+            add_followup_context_menu(followup5, 5)
+            add_followup_context_menu(followup6, 6)
+            fetch_followup()
 
         def open_context_menu(event):
             item = self.tree.selection()
@@ -397,7 +574,6 @@ class LeadHeader:
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
         self.tree.bind("<Double-1>", on_double_click)
-        self.tree.bind("<Button-3>", open_context_menu)  # Right-click event
 
         menu = tk.Menu(self.tree, tearoff=0)
         menu.add_command(label="Add", command=add_followup)
@@ -407,6 +583,7 @@ class LeadHeader:
         menu.add_command(
             label="Edit",
         )
+        self.tree.bind("<Button-3>", open_context_menu)  # Right-click event
 
         # Fetch data and populate the table
         populate_treeview()

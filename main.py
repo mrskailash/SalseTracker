@@ -139,8 +139,6 @@ class SalesTracker:
                 self.closure_container.pack(fill=tk.BOTH, expand=True)
             elif page_type == "smart report":
                 self.report_container.pack(fill=tk.BOTH, expand=True)
-            # elif page_type == "leads":
-            #     self.lead_container.pack(fill=tk.BOTH, expand=True)
             elif page_type == "assign":
                 self.assign_container.pack(fill=tk.BOTH, expand=True)
             elif page_type == "employee":
