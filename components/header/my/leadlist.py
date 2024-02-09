@@ -6,6 +6,8 @@ from tkinter import messagebox, ttk
 from PIL import Image, ImageTk
 from tkcalendar import DateEntry
 
+last_filtered_data_window = None
+
 
 class LeadHeader:
     search_icon = None
@@ -15,6 +17,8 @@ class LeadHeader:
     ok_icon = None
     close_icon = None
     filter_icon = None
+
+    selected_lead_data = None
 
     followup1 = None
     followup2 = None
@@ -26,6 +30,11 @@ class LeadHeader:
     def __init__(self, parent):
         self.parent = parent
         self.open_detail_windows = []
+
+        def destroy_previous_window():
+            global last_filtered_data_window
+            if last_filtered_data_window:
+                last_filtered_data_window.destroy()
 
         def search_window():
             search_window = tk.Toplevel(parent)
@@ -95,6 +104,8 @@ class LeadHeader:
 
             def search_data():
                 # Get the selected dates
+                global temp_from_date, temp_to_date
+
                 from_date = from_date_entry.get_date()
                 to_date = to_date_entry.get_date()
 
@@ -115,48 +126,66 @@ class LeadHeader:
                 # Open the new window to display the filtered data
                 display_filtered_data(data)
 
+                temp_from_date = from_date
+                temp_to_date = to_date
+
             search_btn = tk.Button(
                 date_window, text="Search", font=("Arial", 12), command=search_data
             )
             search_btn.place(x=210, y=50)
 
         def display_filtered_data(data):
+            global last_filtered_data_window
+            destroy_previous_window()
             date_window.destroy()
 
             def show_menu(filtermenu, button):
+
                 filtermenu.post(
                     button.winfo_rootx(), button.winfo_rooty() + button.winfo_height()
                 )
 
             def sort_data(column, data, descending):
                 # Sort the data based on the selected column
+                global last_filtered_data_window
+                destroy_previous_window()
                 sorted_data = sorted(
                     data, key=lambda x: x[column - 1], reverse=descending
                 )
                 # Display the sorted data in the filtered_data_window
                 display_filtered_data(sorted_data)
 
-            def filter_data(column, data, filter_value):
-                # Filter the data based on the selected column and filter value
-                if column == 8:  # Check if the column is "Status"
-                    filtered_data = [
-                        row for row in data if row[column - 1] == filter_value.lower()
-                    ]
-                elif column == 7:  # Check if the column is "Assign To"
-                    filtered_data = [
-                        row for row in data if row[column - 1] == filter_value
-                    ]
-                else:
-                    filtered_data = [
-                        row for row in data if row[column - 1] == filter_value
-                    ]
+            def fetch_filter_data(from_date, to_date, filter_option):
 
-                # Display the filtered data in the filtered_data_window
-                display_filtered_data(filtered_data)
+                global last_filtered_data_window
+                destroy_previous_window()
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+
+                # Modify the SQL query based on the filter option
+                if filter_option.startswith("By Status"):
+                    # Extract the status from the filter option
+                    status = filter_option.split(": ")[1]
+
+                    query = f"SELECT id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE date BETWEEN ? AND ? AND status = ?"
+                    cursor.execute(query, (from_date, to_date, status))
+                elif filter_option.startswith("By Assign"):
+                    # Extract the assignee from the filter option
+                    assignee = filter_option.split(": ")[1]
+
+                    query = f"SELECT id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE date BETWEEN ? AND ? AND assignto = ?"
+                    cursor.execute(query, (from_date, to_date, assignee))
+
+                data = cursor.fetchall()
+                conn.close()
+
+                # Open the new window to display the filtered data
+                display_filtered_data(data)
 
             filtered_data_window = tk.Toplevel(parent)
             filtered_data_window.title("Short Data")
             filtered_data_window.geometry("1000x400+515+50")
+            last_filtered_data_window = filtered_data_window
 
             menu_font = ("Arial", 12)
             short_box = tk.Frame(
@@ -188,16 +217,22 @@ class LeadHeader:
             ]
             for option in status_options:
                 status_menu.add_command(
-                    label=option, command=lambda o=option: filter_data(8, data, o)
+                    label=option,
+                    command=lambda opt=option: fetch_filter_data(
+                        temp_from_date, temp_to_date, f"By Status: {opt}"
+                    ),
                 )
 
             # Add filtering options for Assign
             assign_menu = tk.Menu(filtermenu, tearoff=0)
             filtermenu.add_cascade(label="By Assign", menu=assign_menu)
-            assign_options = ["Sales1", "Sales2"]
+            assign_options = ["SalesRep1", "SalesRep2"]
             for option in assign_options:
                 assign_menu.add_command(
-                    label=option, command=lambda o=option: filter_data(7, data, o)
+                    label=option,
+                    command=lambda opt=option: fetch_filter_data(
+                        temp_from_date, temp_to_date, f"By Assign: {opt}"
+                    ),
                 )
 
             self.filter_icon = Image.open("asset/filter_icon/filter.png")
@@ -252,41 +287,7 @@ class LeadHeader:
             for row in data:
                 tree.insert("", "end", values=row)
 
-            # tree.pack(fill="both", expand=True)
-
-            # Create a hidden temporary treeview for filtering
-            temp_tree = ttk.Treeview(
-                filtered_data_window,
-                columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
-                show="headings",
-            )
-            headings_list = [
-                "Lead No",
-                "Date",
-                "Name",
-                "Address",
-                "Mobile",
-                "Email",
-                "Source",
-                "Assign To",
-                "Status",
-                "Referance By ",
-                "Products",
-                "Remark",
-                "Company",
-            ]
-
-            for i, heading in enumerate(headings_list):
-                temp_tree.heading(i + 1, text=heading, anchor="center")
-                temp_tree.column(i + 1, width=50, anchor="center")
-            temp_tree.pack_forget()  # Hide the temporary treeview
-
-            # Insert data into the tree
-            for row in data:
-                temp_tree.insert("", "end", values=row)
-
-            # Show the temporary treeview in the window
-            temp_tree.pack(fill="both", expand=True)
+            tree.pack(fill="both", expand=True)
 
         def fetch_lead_data():
             # Connect to MySQL server
@@ -702,13 +703,90 @@ class LeadHeader:
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
         self.tree.bind("<Double-1>", on_double_click)
 
+        def get_lead():
+            item = self.tree.selection()
+            if item:
+                selected_lead_data = self.tree.item(item, "values")[:2]
+            edit_lead(selected_lead_data)
+
+        def edit_lead(selected_lead_data):
+
+            lead_no, name = selected_lead_data
+            edit_window = tk.Toplevel(parent)
+            edit_window.geometry("500x800+1000+10")
+            edit_window.title("Edit Lead Window")
+            edit_window.title(f"Edit Lead - Lead No: {lead_no}, Name: {name}")
+
+            # Fetch the selected lead data from the database
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE id=?",
+                (lead_no,),
+            )
+            lead_data = cursor.fetchone()
+            conn.close()
+            # Populate the entry widgets with existing data
+            entry_widgets = []
+            labels = [
+                "Date",
+                "Fullname",
+                "Address",
+                "Mobile No",
+                "Email",
+                "Source",
+                "Assign To",
+                "Status",
+                "Ref By",
+                "Products",
+                "Remark",
+                "Company",
+            ]
+
+            for i, value in enumerate(lead_data):
+                entry_label = tk.Label(edit_window, text=labels[i])
+                entry_label.grid(row=i, column=0, padx=10, pady=5)
+                entry_widget = tk.Entry(edit_window, width=30)
+                entry_widget.grid(row=i, column=1, padx=10, pady=5)
+                entry_widget.insert(
+                    0, value
+                )  # Populate the entry widget with existing data
+                entry_widgets.append(entry_widget)
+
+            def save_changes():
+                # Get updated values from entry widgets
+                updated_values = [entry.get() for entry in entry_widgets]
+                # Update the database with the new values
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE leadlist SET date=?, fullname=?, address=?, mobileno=?, email=?, source=?, assignto=?, status=?, ref_by=?, products=?, remark=?, company=? WHERE id=?",
+                    tuple(updated_values + [lead_no]),
+                )
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "Lead data updated successfully.")
+                edit_window.destroy()
+
+            save_button = tk.Button(
+                edit_window, text="Save Changes", command=save_changes
+            )
+            save_button.grid(row=len(lead_data), column=0, columnspan=2, pady=10)
+
+        def open_context_menu(event):
+            item = self.tree.selection()
+            if item:
+                menu.post(event.x_root, event.y_root)
+
         menu = tk.Menu(self.tree, tearoff=0)
         menu.add_command(label="Add", command=add_followup)
+        menu.add_command(label="Edit", command=get_lead)
+
         menu.add_command(
             label="View",
         )
         menu.add_command(
-            label="Edit",
+            label="Delete",
         )
         self.tree.bind("<Button-3>", open_context_menu)  # Right-click event
 
