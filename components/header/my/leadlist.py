@@ -128,6 +128,32 @@ class LeadHeader:
                     button.winfo_rootx(), button.winfo_rooty() + button.winfo_height()
                 )
 
+            def sort_data(column, data, descending):
+                # Sort the data based on the selected column
+                sorted_data = sorted(
+                    data, key=lambda x: x[column - 1], reverse=descending
+                )
+                # Display the sorted data in the filtered_data_window
+                display_filtered_data(sorted_data)
+
+            def filter_data(column, data, filter_value):
+                # Filter the data based on the selected column and filter value
+                if column == 8:  # Check if the column is "Status"
+                    filtered_data = [
+                        row for row in data if row[column - 1] == filter_value.lower()
+                    ]
+                elif column == 7:  # Check if the column is "Assign To"
+                    filtered_data = [
+                        row for row in data if row[column - 1] == filter_value
+                    ]
+                else:
+                    filtered_data = [
+                        row for row in data if row[column - 1] == filter_value
+                    ]
+
+                # Display the filtered data in the filtered_data_window
+                display_filtered_data(filtered_data)
+
             filtered_data_window = tk.Toplevel(parent)
             filtered_data_window.title("Short Data")
             filtered_data_window.geometry("1000x400+515+50")
@@ -138,17 +164,20 @@ class LeadHeader:
             )
             short_box.pack(side=tk.TOP, anchor="nw", fill="y", ipady=5)
             filtermenu = tk.Menu(short_box, tearoff=0, font=menu_font)
+
+            # Add sorting options for ID
             id_menu = tk.Menu(filtermenu, tearoff=0)
-            filtermenu.add_cascade(label="ID Options", menu=id_menu)
+            filtermenu.add_cascade(label="By ID", menu=id_menu)
             id_menu.add_command(
-                label="Ascending",
+                label="Ascending", command=lambda: sort_data(1, data, False)
             )
             id_menu.add_command(
-                label="Descending",
+                label="Descending", command=lambda: sort_data(1, data, True)
             )
 
+            # Add filtering options for Status
             status_menu = tk.Menu(filtermenu, tearoff=0)
-            filtermenu.add_cascade(label="Status Options", menu=status_menu)
+            filtermenu.add_cascade(label="By Status", menu=status_menu)
             status_options = [
                 "Open",
                 "Unassigned",
@@ -158,27 +187,42 @@ class LeadHeader:
                 "Junk",
             ]
             for option in status_options:
-                status_menu.add_command(label=option)
+                status_menu.add_command(
+                    label=option, command=lambda o=option: filter_data(8, data, o)
+                )
 
-            # Add sub-options for the "Assign" option
+            # Add filtering options for Assign
             assign_menu = tk.Menu(filtermenu, tearoff=0)
-            filtermenu.add_cascade(label="Assign Options", menu=assign_menu)
+            filtermenu.add_cascade(label="By Assign", menu=assign_menu)
             assign_options = ["Sales1", "Sales2"]
             for option in assign_options:
-                assign_menu.add_command(label=option)
+                assign_menu.add_command(
+                    label=option, command=lambda o=option: filter_data(7, data, o)
+                )
+
+            self.filter_icon = Image.open("asset/filter_icon/filter.png")
+            self.filter_icon = self.filter_icon.resize((30, 30))
+            self.filter_icon = ImageTk.PhotoImage(self.filter_icon)
 
             filtermenu_button = tk.Button(
                 short_box,
-                text="My",
-                font="Arial 12",
-                bg="gray",
+                image=self.filter_icon,
+                bg="white",
                 borderwidth=0,
                 padx=10,
                 pady=6,
                 command=lambda: show_menu(filtermenu, filtermenu_button),
             )
-            filtermenu_button.pack(side=tk.LEFT)
+            filtermenu_button.grid(
+                row=0,
+                column=0,
+                padx=15,
+            )
 
+            filterlable = tk.Label(
+                short_box, text="Filter", bg="white", font=("Arial", 15)
+            )
+            filterlable.grid(row=1, column=0, padx=15, pady=2)
             tree = ttk.Treeview(
                 filtered_data_window,
                 columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
@@ -208,7 +252,41 @@ class LeadHeader:
             for row in data:
                 tree.insert("", "end", values=row)
 
-            tree.pack(fill="both", expand=True)
+            # tree.pack(fill="both", expand=True)
+
+            # Create a hidden temporary treeview for filtering
+            temp_tree = ttk.Treeview(
+                filtered_data_window,
+                columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+                show="headings",
+            )
+            headings_list = [
+                "Lead No",
+                "Date",
+                "Name",
+                "Address",
+                "Mobile",
+                "Email",
+                "Source",
+                "Assign To",
+                "Status",
+                "Referance By ",
+                "Products",
+                "Remark",
+                "Company",
+            ]
+
+            for i, heading in enumerate(headings_list):
+                temp_tree.heading(i + 1, text=heading, anchor="center")
+                temp_tree.column(i + 1, width=50, anchor="center")
+            temp_tree.pack_forget()  # Hide the temporary treeview
+
+            # Insert data into the tree
+            for row in data:
+                temp_tree.insert("", "end", values=row)
+
+            # Show the temporary treeview in the window
+            temp_tree.pack(fill="both", expand=True)
 
         def fetch_lead_data():
             # Connect to MySQL server
