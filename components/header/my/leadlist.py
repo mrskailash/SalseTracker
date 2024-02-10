@@ -703,17 +703,55 @@ class LeadHeader:
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
         self.tree.bind("<Double-1>", on_double_click)
 
+        def delete_lead():
+            items = self.tree.selection()
+            if items:
+                result = messagebox.askyesno(
+                    "Delete Confirmation",
+                    "Are you sure you want to delete the selected row(s)?",
+                )
+                if result:
+                    conn = sqlite3.connect("salestracker.db")
+                    cursor = conn.cursor()
+
+                    for item in items:
+                        lead_id = self.tree.item(item, "values")[0]
+
+                        # Delete from the database
+                        cursor.execute("DELETE FROM leadlist WHERE id=?", (lead_id,))
+
+                        # Delete from the treeview
+                        self.tree.delete(item)
+
+                    # Renumber the remaining rows sequentially starting from 1
+                    cursor.execute(
+                        "UPDATE leadlist SET id = (SELECT ROW_NUMBER() OVER (ORDER BY id) FROM leadlist)"
+                    )
+
+                    conn.commit()
+                    conn.close()
+
+                    messagebox.showinfo(
+                        "Success", "Lead data deleted successfully and IDs renumbered."
+                    )
+
         def get_lead():
-            item = self.tree.selection()
-            if item:
-                selected_lead_data = self.tree.item(item, "values")[:2]
-            edit_lead(selected_lead_data)
+            items = self.tree.selection()
+            if len(items) == 1:
+                selected_lead_data = self.tree.item(items, "values")[:2]
+                edit_lead(selected_lead_data)
+            elif len(items) > 1:
+                messagebox.showwarning(
+                    "Multiple Rows Selected", "Select only one row to edit."
+                )
+            else:
+                messagebox.showwarning("No Row Selected", "Select a row to edit.")
 
         def edit_lead(selected_lead_data):
 
             lead_no, name = selected_lead_data
             edit_window = tk.Toplevel(parent)
-            edit_window.geometry("500x800+1000+10")
+            edit_window.geometry("300x425+1200+90")
             edit_window.title("Edit Lead Window")
             edit_window.title(f"Edit Lead - Lead No: {lead_no}, Name: {name}")
 
@@ -781,13 +819,7 @@ class LeadHeader:
         menu = tk.Menu(self.tree, tearoff=0)
         menu.add_command(label="Add", command=add_followup)
         menu.add_command(label="Edit", command=get_lead)
-
-        menu.add_command(
-            label="View",
-        )
-        menu.add_command(
-            label="Delete",
-        )
+        menu.add_command(label="Delete", command=delete_lead)
         self.tree.bind("<Button-3>", open_context_menu)  # Right-click event
 
         # Fetch data and populate the table
