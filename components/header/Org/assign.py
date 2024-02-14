@@ -9,6 +9,7 @@ class Assign:
     search_icon = None
     date_filter_icon = None
     refresh_icon = None
+    filter_icon = None
 
     def __init__(self, parent):
         self.parent = parent
@@ -55,13 +56,16 @@ class Assign:
         lead_heading.pack(side=tk.TOP, anchor=tk.NW)
 
         separator = tk.Frame(parent, bg="black", height=2, width=1510)
-        separator.pack(pady=5)
+        separator.pack(pady=10)
 
         lead_heading_menu4 = tk.Frame(lead_heading, bg="white", height=45, width=55)
         lead_heading_menu4.place(x=12, y=10)
 
-        lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu6.place(x=80, y=10)
+        lead_heading_menu5 = tk.Frame(lead_heading, bg="white", height=45, width=55)
+        lead_heading_menu5.place(x=80, y=10)
+
+        # lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
+        # lead_heading_menu6.place(x=80, y=10)
 
         self.refresh_icon = Image.open("asset/assign/user-check.png")
         self.refresh_icon = self.refresh_icon.resize((25, 25))
@@ -88,30 +92,67 @@ class Assign:
         )
         refresh_text.grid(row=1, column=1)
 
-        self.search_icon = Image.open("asset/Lead_icon/search.png")
-        self.search_icon = self.search_icon.resize((25, 25))
-        self.search_icon = ImageTk.PhotoImage(self.search_icon)
+        def show_filter(filtermenu, button):
 
-        search_button = tk.Button(
-            lead_heading_menu6,
-            image=self.search_icon,
+            filtermenu.post(
+                button.winfo_rootx(), button.winfo_rooty() + button.winfo_height()
+            )
+
+        menu_font = ("Arial", 12)
+        filtermenu = tk.Menu(lead_heading_menu5, tearoff=0, font=menu_font)
+        assign_menu = tk.Menu(filtermenu, tearoff=0)
+        filtermenu.add_cascade(label="By Assign", menu=assign_menu)
+        assign_options = ["SalesRep1", "SalesRep2"]
+        for option in assign_options:
+            assign_menu.add_command(label=option)
+        self.filter_icon = Image.open("asset/filter_icon/filter.png")
+        self.filter_icon = self.filter_icon.resize((25, 25))
+        self.filter_icon = ImageTk.PhotoImage(self.filter_icon)
+
+        filtermenu_button = tk.Button(
+            lead_heading_menu5,
+            image=self.filter_icon,
             borderwidth=0,
             highlightthickness=0,
             bg="white",
             height=25,
             width=25,
-            command=search_window,
+            command=lambda: show_filter(filtermenu, filtermenu_button),
         )
-        search_button.grid(row=0, column=1)
+        filtermenu_button.grid(
+            row=0,
+            column=1,
+        )
 
-        search_text = tk.Label(
-            lead_heading_menu6,
-            text="search",
-            fg="black",
-            bg="white",
-            font=("Arial", 12),
+        filterlable = tk.Label(
+            lead_heading_menu5, text="Filter", bg="white", font=("Arial", 12)
         )
-        search_text.grid(row=1, column=1)
+        filterlable.grid(row=1, column=1)
+
+        # self.search_icon = Image.open("asset/Lead_icon/search.png")
+        # self.search_icon = self.search_icon.resize((25, 25))
+        # self.search_icon = ImageTk.PhotoImage(self.search_icon)
+
+        # search_button = tk.Button(
+        #     lead_heading_menu6,
+        #     image=self.search_icon,
+        #     borderwidth=0,
+        #     highlightthickness=0,
+        #     bg="white",
+        #     height=25,
+        #     width=25,
+        #     command=search_window,
+        # )
+        # search_button.grid(row=0, column=1)
+
+        # search_text = tk.Label(
+        #     lead_heading_menu6,
+        #     text="search",
+        #     fg="black",
+        #     bg="white",
+        #     font=("Arial", 12),
+        # )
+        # search_text.grid(row=1, column=1)
 
         lead_list_text = tk.Label(parent, text="Lead List", font=("Arial", 16))
         lead_list_text.place(x=15, y=80)

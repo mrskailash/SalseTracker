@@ -9,31 +9,17 @@ class Users:
     search_icon = None
     date_filter_icon = None
     refresh_icon = None
+    add_icon = None
 
     def __init__(self, parent):
         self.parent = parent
-
-        def center_window(window, width, height):
-            screen_width = window.winfo_screenwidth()
-            screen_height = window.winfo_screenheight()
-            x_coordinate = int((screen_width - width) / 2)
-            y_coordinate = int((screen_height - height) / 2)
-            window.geometry(f"{width}x{height}+{x_coordinate}+{y_coordinate}")
-
-        def search_window():
-            search_window = tk.Toplevel(parent)
-            search_window.title("Small Window")
-            search_window.geometry("500x50")
-            center_window(search_window, 487, 348)
-            search_window.resizable(False, False)
-            search_window.title("Product Details")
 
         def fetch_employe_data():
             # Connect to MySQL server
             conn = sqlite3.connect("salestracker.db")
             cursor = conn.cursor()
             # Fetch data from the leadlist table
-            cursor.execute("SELECT Uname, name, type FROM user")
+            cursor.execute("SELECT id,Uname, name, type FROM user")
             lead_data = cursor.fetchall()
 
             # Close the database connection
@@ -45,8 +31,80 @@ class Users:
 
             # Insert fetched data into the treeview
             for leadrow in lead_data:
-                (uname, name, employee_type) = leadrow
-                self.tree.insert("", "end", values=(uname, name, employee_type))
+                (id, uname, name, employee_type) = leadrow
+                self.tree.insert("", "end", values=(id, uname, name, employee_type))
+
+        def delete_lead():
+            items = self.tree.selection()
+            if not items:
+                messagebox.showwarning("No Row Selected", "Select a row to delete.")
+                return
+
+            confirm = messagebox.askyesno(
+                "Confirm Deletion", "Are you sure you want to delete the selected row?"
+            )
+            if not confirm:
+                return
+
+            # Get the IDs of the selected rows
+            selected_ids = [self.tree.item(item, "values")[0] for item in items]
+
+            # Connect to the database
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+
+            # Delete the selected rows
+            for lead_id in selected_ids:
+                cursor.execute("DELETE FROM user WHERE id=?", (lead_id,))
+
+            # Commit the changes
+            conn.commit()
+
+            # Close the connection
+            conn.close()
+
+            # Reset the ID sequence in sqlite_sequence table
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+            cursor.execute("UPDATE user SET id=0 WHERE name='user'")
+            conn.commit()
+            conn.close()
+
+            messagebox.showinfo("Success", "Row(s) deleted successfully.")
+
+            # Refresh the table after deletion
+            fetch_employe_data()
+
+        def save_data():
+            # Get data from entry widgets
+            uname = self.name_entry.get()
+            name = self.profile_entry.get()
+            profile_type = self.profile_type.get()
+
+            # Check if any of the entry fields is empty
+            if not uname or not name or not profile_type:
+                messagebox.showerror("Error", "Please fill in all the fields.")
+                return
+
+            # Connect to the database
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+
+            # Insert data into the 'user' table
+            cursor.execute(
+                "INSERT INTO user (uname, name, type) VALUES (?, ?, ?)",
+                (uname, name, profile_type),
+            )
+
+            # Commit the changes and close the connection
+            conn.commit()
+            conn.close()
+
+            messagebox.showinfo("Success", "Data saved successfully.")
+
+            self.name_entry.delete(0, tk.END)
+            self.profile_entry.delete(0, tk.END)
+            self.profile_type.set(" ")
 
         lead_heading = tk.Frame(parent, bg="white", width=1300, height=55)
         lead_heading.pack(side=tk.TOP, anchor=tk.NW)
@@ -61,7 +119,7 @@ class Users:
         lead_heading_menu5.place(x=80, y=10)
 
         lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu6.place(x=150, y=10)
+        lead_heading_menu6.place(x=125, y=10)
 
         self.refresh_icon = Image.open("asset/Lead_icon/refresh.png")
         self.refresh_icon = self.refresh_icon.resize((25, 25))
@@ -88,74 +146,73 @@ class Users:
         )
         refresh_text.grid(row=1, column=1)
 
-        self.date_filter_icon = Image.open("asset/Lead_icon/calendar.png")
-        self.date_filter_icon = self.date_filter_icon.resize((25, 25))
-        self.date_filter_icon = ImageTk.PhotoImage(self.date_filter_icon)
+        def clear_entries():
+            self.name_entry.delete(0, tk.END)
+            self.profile_entry.delete(0, tk.END)
+            self.profile_type.set(" ")  # Correct the attribute name
 
-        date_filter_button = tk.Button(
+        self.add_icon = Image.open("asset/Lead_icon/plus.png")
+        self.add_icon = self.add_icon.resize((25, 25))
+        self.add_icon = ImageTk.PhotoImage(self.add_icon)
+
+        add_button = tk.Button(
             lead_heading_menu5,
-            image=self.date_filter_icon,
+            image=self.add_icon,
             borderwidth=0,
             highlightthickness=0,
             bg="white",
             height=25,
             width=25,
+            command=clear_entries,
         )
-        date_filter_button.grid(row=0, column=1, padx=5)
+        add_button.grid(row=0, column=1)
 
-        date_filter_text = tk.Label(
-            lead_heading_menu5,
-            text="date filter",
-            fg="black",
-            bg="white",
-            font=("Arial", 12),
+        add_text = tk.Label(
+            lead_heading_menu5, text="new", fg="black", bg="white", font=("Arial", 12)
         )
-        date_filter_text.grid(row=1, column=1)
+        add_text.grid(row=1, column=1)
 
-        self.search_icon = Image.open("asset/Lead_icon/search.png")
-        self.search_icon = self.search_icon.resize((25, 25))
-        self.search_icon = ImageTk.PhotoImage(self.search_icon)
+        self.save_icon = Image.open("asset/Lead_icon/diskette.png")
+        self.save_icon = self.save_icon.resize((25, 25))
+        self.save_icon = ImageTk.PhotoImage(self.save_icon)
 
-        search_button = tk.Button(
+        save_button = tk.Button(
             lead_heading_menu6,
-            image=self.search_icon,
+            image=self.save_icon,
             borderwidth=0,
             highlightthickness=0,
             bg="white",
             height=25,
             width=25,
-            command=search_window,
+            command=save_data,
         )
-        search_button.grid(row=0, column=1, padx=5)
+        save_button.grid(row=0, column=1)
 
-        search_text = tk.Label(
-            lead_heading_menu6,
-            text="search",
-            fg="black",
-            bg="white",
-            font=("Arial", 12),
+        save_text = tk.Label(
+            lead_heading_menu6, text="save", fg="black", bg="white", font=("Arial", 12)
         )
-        search_text.grid(row=1, column=1)
+        save_text.grid(row=1, column=1)
 
         lead_list_text = tk.Label(parent, text="User List", font=("Arial", 16))
         lead_list_text.place(x=15, y=80)
 
         self.tree = ttk.Treeview(
             parent,
-            columns=("name", "Login Name", "Profile type"),
+            columns=("id", "name", "Profile Name", "Profile type"),
             show="headings",
             height=10,
         )
-        headings = ["name", "Login Name", "Profile type"]
+        headings = ["id", "name", "Profile Name", "Profile type"]
         for i, headings in enumerate(headings):
             self.tree.heading(i, text=headings, anchor="center")
 
+        self.tree.column("id", anchor="center", width=10)
         self.tree.column(
             "name",
             anchor="center",
         )
         self.tree.column(
-            "Login Name",
+            "Profile Name",
             anchor="center",
         )
         self.tree.column(
@@ -165,6 +222,82 @@ class Users:
 
         self.tree.pack(fill="y", side=tk.LEFT, padx=10, pady=45)
 
+        def get_lead():
+            items = self.tree.selection()
+            if len(items) == 1:
+                selected_lead_data = self.tree.item(items, "values")[:2]
+                edit_lead(selected_lead_data)
+            elif len(items) > 1:
+                messagebox.showwarning(
+                    "Multiple Rows Selected", "Select only one row to edit."
+                )
+            else:
+                messagebox.showwarning("No Row Selected", "Select a row to edit.")
+
+        def edit_lead(selected_lead_data):
+
+            lead_no, name = selected_lead_data
+            edit_window = tk.Toplevel(parent)
+            edit_window.geometry("300x425+1200+90")
+            edit_window.title("Edit Lead Window")
+            edit_window.title(f"Edit Lead - Name: {lead_no}, Name: {name}")
+
+            # Fetch the selected lead data from the database
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT Uname, name, type FROM user WHERE id=?",
+                (lead_no,),
+            )
+            lead_data = cursor.fetchone()
+            conn.close()
+            # Populate the entry widgets with existing data
+            entry_widgets = []
+            labels = [
+                "name",
+                "profile_name",
+                "profile_type",
+            ]
+
+            for i, value in enumerate(lead_data):
+                entry_label = tk.Label(edit_window, text=labels[i])
+                entry_label.grid(row=i, column=0, padx=10, pady=5)
+                entry_widget = tk.Entry(edit_window, width=30)
+                entry_widget.grid(row=i, column=1, padx=10, pady=5)
+                entry_widget.insert(
+                    0, value
+                )  # Populate the entry widget with existing data
+                entry_widgets.append(entry_widget)
+
+            def save_changes():
+                # Get updated values from entry widgets
+                updated_values = [entry.get() for entry in entry_widgets]
+                # Update the database with the new values
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE user SET uname=?,name=?, type=? WHERE id=?",
+                    tuple(updated_values + [lead_no]),
+                )
+                conn.commit()
+                conn.close()
+                messagebox.showinfo("Success", "user is  updated successfully.")
+                edit_window.destroy()
+
+            save_button = tk.Button(
+                edit_window, text="Save Changes", command=save_changes
+            )
+            save_button.grid(row=len(lead_data), column=0, columnspan=2, pady=10)
+
+        def open_context_menu(event):
+            item = self.tree.selection()
+            if item:
+                menu.post(event.x_root, event.y_root)
+
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label="Edit", command=get_lead)
+        menu.add_command(label="Delete", command=delete_lead)
+        self.tree.bind("<Button-3>", open_context_menu)
         userentry = tk.Frame(
             parent, relief="solid", borderwidth=2, bg="white", height=600, width=750
         )
@@ -174,33 +307,31 @@ class Users:
         name = tk.Label(userentry, text="Name", font=("Arial", 12), bg="white")
         name.grid(column=0, row=0, padx=15, pady=12)
 
-        name_entry = tk.Entry(
+        self.name_entry = tk.Entry(
             userentry, borderwidth=2, highlightthickness=-0, relief=tk.GROOVE, width=50
         )
-        name_entry.grid(column=1, row=0, padx=15, pady=12)
+        self.name_entry.grid(column=1, row=0, padx=15, pady=12)
 
-        mobile = tk.Label(userentry, text="Mobile no", font=("Arial", 12), bg="white")
-        mobile.grid(column=0, row=1, padx=15, pady=12)
+        profile = tk.Label(
+            userentry, text="Profile name", font=("Arial", 12), bg="white"
+        )
+        profile.grid(column=0, row=1, padx=15, pady=12)
 
-        mobile_entry = tk.Entry(
+        self.profile_entry = tk.Entry(
             userentry, borderwidth=2, highlightthickness=-0, relief=tk.GROOVE, width=50
         )
-        mobile_entry.grid(column=1, row=1, padx=15, pady=12)
+        self.profile_entry.grid(column=1, row=1, padx=15, pady=12)
 
-        email = tk.Label(userentry, text="Email", font=("Arial", 12), bg="white")
-        email.grid(column=0, row=2, padx=15, pady=12)
-
-        email_entry = tk.Entry(
-            userentry, borderwidth=2, highlightthickness=-0, relief=tk.GROOVE, width=50
+        Profile_type = tk.Label(
+            userentry, text="Profile_type", font=("Arial", 12), bg="white"
         )
-        email_entry.grid(column=1, row=2, padx=15, pady=12)
+        Profile_type.grid(column=0, row=2, padx=15, pady=12)
 
-        profile = tk.Label(userentry, text="profile", font=("Arial", 12), bg="white")
-        profile.grid(column=0, row=3, padx=15, pady=12)
+        Profile_type_value = ["Sales"]
+        self.profile_type = ttk.Combobox(userentry, values=Profile_type_value, width=45)
+        self.profile_type.grid(column=1, row=2, padx=15, pady=12)
 
-        profile_entry = tk.Entry(
-            userentry, borderwidth=2, highlightthickness=-0, relief=tk.GROOVE, width=50
-        )
-        profile_entry.grid(column=1, row=3, padx=15, pady=12)
+        save_button = tk.Button(userentry, text="Save", width=10, command=save_data)
+        save_button.grid(column=0, row=3, pady=10)
         # Fetch data and populate the table
         fetch_employe_data()

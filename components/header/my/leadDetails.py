@@ -114,6 +114,7 @@ class LeadDetails:
             company_entry.delete(0, tk.END)
 
         def clear_entries():
+            self.date_entry.delete(0, tk.END)
             self.name_entry.delete(0, tk.END)
             self.address_entry.delete(0, tk.END)
             self.telephone_entry.delete(0, tk.END)

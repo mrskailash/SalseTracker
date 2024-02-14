@@ -13,7 +13,7 @@ class Closure:
     def __init__(self, parent):
         self.parent = parent
 
-        def fetch_lead_data(self):
+        def fetch_lead_data():
             # Connect to SQLite database (replace 'your_database.db' with the actual database file)
             conn = sqlite3.connect("salestracker.db")
             cursor = conn.cursor()
@@ -51,30 +51,30 @@ class Closure:
         lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
         lead_heading_menu6.place(x=150, y=10)
 
-        self.check_box_icon = Image.open("asset/closure/check-box.png")
-        self.check_box_icon = self.check_box_icon.resize((25, 25))
-        self.check_box_icon = ImageTk.PhotoImage(self.check_box_icon)
+        self.refresh_icon = Image.open("asset/Lead_icon/refresh.png")
+        self.refresh_icon = self.refresh_icon.resize((25, 25))
+        self.refresh_icon = ImageTk.PhotoImage(self.refresh_icon)
 
-        check_button = tk.Button(
+        refresh_button = tk.Button(
             lead_heading_menu4,
-            image=self.check_box_icon,
+            image=self.refresh_icon,
             borderwidth=0,
             highlightthickness=0,
             bg="white",
             height=25,
             width=25,
-            # command=fetch_lead_data,
+            command=fetch_lead_data,
         )
-        check_button.grid(row=0, column=1, padx=5)
+        refresh_button.grid(row=0, column=1, padx=5)
 
-        check_text = tk.Label(
+        refresh_text = tk.Label(
             lead_heading_menu4,
-            text="refresh",
+            text="Refresh",
             fg="black",
             bg="white",
             font=("Arial", 12),
         )
-        check_text.grid(row=1, column=1)
+        refresh_text.grid(row=1, column=1)
 
         self.date_filter_icon = Image.open("asset/Lead_icon/calendar.png")
         self.date_filter_icon = self.date_filter_icon.resize((25, 25))
@@ -160,6 +160,53 @@ class Closure:
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
-        # Fetch data and populate the table
-        # fetch_lead_data()
-        fetch_lead_data(self)
+        def on_double_click(event):
+            item = self.tree.selection()
+            if item:
+                selected_lead_data = self.tree.item(item, "values")[:2]
+                closelead(selected_lead_data)
+
+        def closelead(selected_lead_data):
+            if selected_lead_data:
+                lead_id = selected_lead_data[0]
+                title = f"Close Lead - ID: {lead_id}"
+
+            else:
+                title = "Close Lead"
+                # Create a message box
+            result = messagebox.askokcancel(title, "Do you want to Close This lead ?")
+
+            # Check the result and update the status if OK button is clicked
+            if result:
+                update_lead_data(lead_id)  # Pass lead_id instead of self
+
+        def update_lead_data(lead_id):
+            # Connect to your SQLite database
+            connection = sqlite3.connect(
+                "salestracker.db"
+            )  # Replace with your database name
+
+            # Create a cursor object
+            cursor = connection.cursor()
+
+            # Update the 'status' column to 'close' for the specified lead_id
+            cursor.execute(
+                "UPDATE leadlist SET status = 'close' WHERE id = ?", (lead_id,)
+            )
+
+            # Commit the changes
+            connection.commit()
+
+            # Close the database connection
+            connection.close()
+
+        def open_context_menu(event):
+            item = self.tree.selection()
+            if item:
+                menu.post(event.x_root, event.y_root)
+
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label="Close Lead", command=closelead)
+        self.tree.bind("<Button-3>", open_context_menu)  # Right-click event
+        self.tree.bind("<Double-1>", on_double_click)
+        fetch_lead_data()

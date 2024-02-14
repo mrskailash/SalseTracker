@@ -37,6 +37,49 @@ class LeadHeader:
                 last_filtered_data_window.destroy()
 
         def search_window():
+
+            def fetch_data():
+                # Connect to MySQL server
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                # Fetch data from different tables
+
+                cursor.execute("SELECT statustype FROM status")
+                status_options = [rows[0] for rows in cursor.fetchall()]
+
+                cursor.execute("SELECT Sourcename FROM source")
+                sources = [rows[0] for rows in cursor.fetchall()]
+
+                # Close the database connection
+
+                conn.commit()
+                conn.close()
+
+                return status_options, sources
+
+            def update_text_entry(*args):
+                selected_option = text_combobox.get()
+
+                if selected_option == "(none)":
+                    text_entry.config(state="disabled")
+                else:
+                    text_entry.config(state="normal")
+
+            def update_sub_dropdown(*args):
+                selected_option = dropdown_combobox.get()
+
+                if selected_option == "(none)":
+                    dropdown_sub_combobox.set("")
+                    dropdown_sub_combobox["values"] = []
+                    dropdown_sub_combobox["state"] = "disabled"
+                elif selected_option == "Closure":
+                    dropdown_sub_combobox["values"] = data[0]
+                    dropdown_sub_combobox["state"] = "readonly"
+                elif selected_option == "Source":
+                    dropdown_sub_combobox["values"] = data[1]
+                    dropdown_sub_combobox["state"] = "readonly"
+
+            global search_window
             search_window = tk.Toplevel(parent)
             search_window.title("Search Window")
             search_window.geometry("450x170+1000+80")
@@ -54,15 +97,16 @@ class LeadHeader:
             by_text_option = [
                 "(none)",
                 "address",
-                "contact person",
+                "assignto",
                 "email",
-                "notes",
-                "telephone",
+                "mobileno",
+                "ref_by",
             ]
             text_combobox = ttk.Combobox(search_window, values=by_text_option)
             text_combobox.grid(row=1, column=1, padx=5, pady=10)
-
-            text_entry = tk.Entry(search_window, width=25)
+            text_combobox.set("(none)")  # Set default value
+            text_combobox.bind("<<ComboboxSelected>>", update_text_entry)
+            text_entry = tk.Entry(search_window, width=25, state="disabled")
             text_entry.grid(row=1, column=2, padx=5, pady=10)
 
             dropdown_label = tk.Label(
@@ -73,15 +117,109 @@ class LeadHeader:
             dropdown_option = ["(none)", "Closure", "Source"]
             dropdown_combobox = ttk.Combobox(search_window, values=dropdown_option)
             dropdown_combobox.grid(row=2, column=1, pady=10)
+            dropdown_combobox.set("(none)")  # Set default value
+            dropdown_combobox.bind("<<ComboboxSelected>>", update_sub_dropdown)
 
-            dropdown_sub_option = ["-OPEN-", "close", "won", "lost"]
+            data = fetch_data()
+
             dropdown_sub_combobox = ttk.Combobox(
-                search_window, values=dropdown_sub_option
+                search_window, values=data[0], state="disable"
             )
             dropdown_sub_combobox.grid(row=2, column=2, pady=10)
 
-            search_btn = tk.Button(search_window, text="Search", font=("Arial", 12))
+            def search():
+                # Get the name input
+                name = name_entry.get()
+
+                # Get the selected column for By Text option
+                selected_text_column = text_combobox.get()
+                # Get the text input for By Text option
+                text_input = text_entry.get()
+
+                # Get the selected column for By Dropdown option
+                selected_dropdown_column = dropdown_combobox.get()
+                # Get the selected submenu option for By Dropdown option
+                selected_submenu_option = dropdown_sub_combobox.get()
+
+                # Connect to the database
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+
+                # Construct the SQL query based on the selected column and input
+                if selected_text_column != "(none)" and len(text_input) >= 3:
+                    # By Text option
+                    query = f"SELECT id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE {selected_text_column} LIKE ?"
+                    cursor.execute(query, (f"%{text_input}%",))
+                elif selected_dropdown_column != "(none)" and selected_submenu_option:
+                    # By Dropdown option
+                    # Map the display names to database column names
+                    column_mapping = {"Closure": "status", "Source": "source"}
+                    mapped_column = column_mapping.get(
+                        selected_dropdown_column, selected_dropdown_column
+                    )
+                    # Construct the SQL query based on the mapped column and submenu option
+                    query = f"SELECT id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE {mapped_column} LIKE ?"
+                    cursor.execute(query, (f"%{selected_submenu_option}%",))
+                elif len(name) >= 3:
+                    # If neither By Text nor By Dropdown is selected, use the name for search
+                    query = f"SELECT id, date, fullname, address, mobileno, email, source, assignto, status, ref_by, products, remark, company FROM leadlist WHERE fullname LIKE ?"
+                    cursor.execute(query, (f"%{name}%",))
+                else:
+                    # No valid input, do nothing
+                    conn.close()
+                    return
+
+                result = cursor.fetchall()
+
+                # Close the database connection
+                conn.close()
+
+                # Display the results in a new window
+                show_results(result)
+                search_window.destroy()
+
+            search_btn = tk.Button(
+                search_window, text="Search", font=("Arial", 12), command=search
+            )
             search_btn.place(x=365, y=135)
+
+        def show_results(data):
+            # Create a new window
+            result_window = tk.Toplevel(parent)
+            result_window.title("Search Results")
+            result_window.geometry("1000x400+495+80")
+
+            # Create a Treeview to display the results
+            tree = ttk.Treeview(
+                result_window,
+                columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+                show="headings",
+            )
+
+            # Set column names
+            tree.heading(1, text="ID")
+            tree.heading(2, text="Date")
+            tree.heading(3, text="Fullname")
+            tree.heading(4, text="Address")
+            tree.heading(5, text="Mobile No")
+            tree.heading(6, text="Email")
+            tree.heading(7, text="Source")
+            tree.heading(8, text="Assign To")
+            tree.heading(9, text="Status")
+            tree.heading(10, text="Ref By")
+            tree.heading(11, text="Products")
+            tree.heading(12, text="Remark")
+            tree.heading(13, text="Company")
+
+            # Set column width
+            for i in range(1, 14):
+                tree.column(i, width=50, anchor="center")
+
+                # Insert data into the tree
+            for row in data:
+                tree.insert("", "end", values=row)
+
+            tree.pack(fill="both", expand=True)
 
         def show_date_window():
             global date_window
@@ -398,7 +536,8 @@ class LeadHeader:
                     followup4,
                     followup5,
                     followup6,
-                ][followup_index - 1]
+                ]
+                [followup_index - 1]
                 followup_widget.config(state=tk.NORMAL)
 
             def close_detail_window():
@@ -568,7 +707,7 @@ class LeadHeader:
         lead_heading_menu5.place(x=80, y=10)
 
         lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu6.place(x=150, y=10)
+        lead_heading_menu6.place(x=160, y=10)
 
         self.refresh_icon = Image.open("asset/Lead_icon/refresh.png")
         self.refresh_icon = self.refresh_icon.resize((25, 25))
