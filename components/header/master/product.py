@@ -318,7 +318,7 @@ class Product:
                 )
                 conn.commit()
                 conn.close()
-                messagebox.showinfo("Success", "User is updated successfully.")
+                messagebox.showinfo("Success", "Product is updated successfully.")
                 edit_window.destroy()
                 fetch_product_names()
 

@@ -160,25 +160,24 @@ class Closure:
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
-        def on_double_click(event):
-            item = self.tree.selection()
-            if item:
-                selected_lead_data = self.tree.item(item, "values")[:2]
-                closelead(selected_lead_data)
-
-        def closelead(selected_lead_data):
+        def closelead(selected_lead_data=None):
             if selected_lead_data:
                 lead_id = selected_lead_data[0]
                 title = f"Close Lead - ID: {lead_id}"
-
             else:
                 title = "Close Lead"
                 # Create a message box
             result = messagebox.askokcancel(title, "Do you want to Close This lead ?")
 
             # Check the result and update the status if OK button is clicked
-            if result:
-                update_lead_data(lead_id)  # Pass lead_id instead of self
+            if result and selected_lead_data:
+                update_lead_data(lead_id)
+
+        def on_double_click(event):
+            item = self.tree.selection()
+            if item:
+                selected_lead_data = self.tree.item(item, "values")[:2]
+                closelead(selected_lead_data)
 
         def update_lead_data(lead_id):
             # Connect to your SQLite database

@@ -342,17 +342,15 @@ class LeadHeader:
                 label="Descending", command=lambda: sort_data(1, data, True)
             )
 
+            connection = sqlite3.connect(
+                "salestracker.db"
+            )  # Replace with your actual database file
+            cursor = connection.cursor()
+            cursor.execute("SELECT statustype FROM status")
+            status_options = [rows[0] for rows in cursor.fetchall()]
             # Add filtering options for Status
             status_menu = tk.Menu(filtermenu, tearoff=0)
             filtermenu.add_cascade(label="By Status", menu=status_menu)
-            status_options = [
-                "Open",
-                "Unassigned",
-                "Running",
-                "CloseWon",
-                "Lost",
-                "Junk",
-            ]
             for option in status_options:
                 status_menu.add_command(
                     label=option,
@@ -361,10 +359,12 @@ class LeadHeader:
                     ),
                 )
 
+            # Fetch options for the "Assign" menu from the database
+            cursor.execute("SELECT name FROM user WHERE id >= 2")
+            assign_options = [rows[0] for rows in cursor.fetchall()]
             # Add filtering options for Assign
             assign_menu = tk.Menu(filtermenu, tearoff=0)
             filtermenu.add_cascade(label="By Assign", menu=assign_menu)
-            assign_options = ["SalesRep1", "SalesRep2"]
             for option in assign_options:
                 assign_menu.add_command(
                     label=option,
