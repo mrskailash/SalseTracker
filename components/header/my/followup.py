@@ -16,6 +16,12 @@ class FollowUp:
     def __init__(self, parent):
         self.parent = parent
 
+        def followup_window():
+            search_window = tk.Toplevel(parent)
+            search_window.title("Search Window")
+            search_window.geometry("450x170+1000+80")
+            search_window.resizable(False, False)
+
         def search_window():
             search_window = tk.Toplevel(parent)
             search_window.title("Search Window")
@@ -223,7 +229,7 @@ class FollowUp:
             bg="white",
             height=25,
             width=25,
-            # command=fetch_lead_data,
+            command=followup_window,
         )
         followup_button.grid(row=0, column=1, padx=5)
 
@@ -384,4 +390,15 @@ class FollowUp:
         self.tree.bind("<Double-1>", on_double_click)
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
+        def open_context_menu(event):
+            item = self.tree.selection()
+            if item:
+                menu.post(event.x_root, event.y_root)
+
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label="follow up", command=followup_window)
+        menu.add_command(
+            label="view",
+        )
+        self.tree.bind("<Button-3>", open_context_menu)
         populate_treeview()

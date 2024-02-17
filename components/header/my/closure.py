@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 
 
 class Closure:
+    filter_icon = None
     search_icon = None
     date_filter_icon = None
     refresh_icon = None
@@ -13,14 +14,39 @@ class Closure:
     def __init__(self, parent):
         self.parent = parent
 
-        def fetch_lead_data():
+        def fetch_filter_lead(option):
+            # Implement the logic to fetch data based on the selected filter option
+            # Connect to SQLite database (replace 'your_database.db' with the actual database file)
+            conn = sqlite3.connect("salestracker.db")
+            cursor = conn.cursor()
+
+            # Fetch data from the 'leadlist' table based on the selected filter option
+            cursor.execute(
+                "SELECT id, date, fullname, address, email, status FROM leadlist WHERE status = ?",
+                (option,),
+            )
+            data = cursor.fetchall()
+
+            # Clear existing data in the Treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
+            # Insert fetched data into the Treeview
+            for row in data:
+                self.tree.insert("", "end", values=row)
+
+            # Commit and close the connection
+            conn.commit()
+            conn.close()
+
+        def fetch_lead_open_data():
             # Connect to SQLite database (replace 'your_database.db' with the actual database file)
             conn = sqlite3.connect("salestracker.db")
             cursor = conn.cursor()
 
             # Fetch data from the 'leadlist' table
             cursor.execute(
-                "SELECT id, date, fullname, address, email, status FROM leadlist"
+                "SELECT id, date, fullname, address, email, status FROM leadlist WHERE LOWER(status) = 'open'"
             )
             data = cursor.fetchall()
 
@@ -42,15 +68,62 @@ class Closure:
         separator = tk.Frame(parent, bg="black", height=2, width=1510)
         separator.pack(pady=5)
 
+        lead_heading_menu3 = tk.Frame(lead_heading, bg="white", height=45, width=55)
+        lead_heading_menu3.place(x=10, y=10)
+
         lead_heading_menu4 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu4.place(x=12, y=10)
+        lead_heading_menu4.place(x=80, y=10)
 
         lead_heading_menu5 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu5.place(x=80, y=10)
+        lead_heading_menu5.place(x=150, y=10)
 
         lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu6.place(x=150, y=10)
+        lead_heading_menu6.place(x=230, y=10)
 
+        def show_menu(filtermenu, button):
+
+            filtermenu.post(
+                button.winfo_rootx(), button.winfo_rooty() + button.winfo_height()
+            )
+
+        connection = sqlite3.connect(
+            "salestracker.db"
+        )  # Replace with your actual database file
+        cursor = connection.cursor()
+        cursor.execute("SELECT statustype FROM status")
+        status_options = [rows[0] for rows in cursor.fetchall()]
+
+        status_menu = tk.Menu(lead_heading_menu3, tearoff=0)
+
+        for option in status_options:
+            status_menu.add_command(
+                label=option,
+                command=lambda opt=option: fetch_filter_lead(opt),
+            )
+        self.filter_icon = Image.open("asset/filter_icon/filter.png")
+        self.filter_icon = self.filter_icon.resize((25, 25))
+        self.filter_icon = ImageTk.PhotoImage(self.filter_icon)
+
+        filtermenu_button = tk.Button(
+            lead_heading_menu3,
+            image=self.filter_icon,
+            borderwidth=0,
+            highlightthickness=0,
+            bg="white",
+            height=25,
+            width=25,
+            command=lambda: show_menu(status_menu, filtermenu_button),
+        )
+        filtermenu_button.grid(
+            row=0,
+            column=0,
+            padx=15,
+        )
+
+        filterlable = tk.Label(
+            lead_heading_menu3, text="Filter", bg="white", font=("Arial", 12)
+        )
+        filterlable.grid(row=1, column=0, padx=15, pady=2)
         self.refresh_icon = Image.open("asset/Lead_icon/refresh.png")
         self.refresh_icon = self.refresh_icon.resize((25, 25))
         self.refresh_icon = ImageTk.PhotoImage(self.refresh_icon)
@@ -63,7 +136,7 @@ class Closure:
             bg="white",
             height=25,
             width=25,
-            command=fetch_lead_data,
+            command=fetch_lead_open_data,
         )
         refresh_button.grid(row=0, column=1, padx=5)
 
@@ -160,37 +233,29 @@ class Closure:
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=45)
 
-        def closelead(selected_lead_data=None):
-            if selected_lead_data:
-                lead_id = selected_lead_data[0]
-                title = f"Close Lead - ID: {lead_id}"
-            else:
-                title = "Close Lead"
-                # Create a message box
-            result = messagebox.askokcancel(title, "Do you want to Close This lead ?")
-
-            # Check the result and update the status if OK button is clicked
-            if result and selected_lead_data:
-                update_lead_data(lead_id)
-
-        def on_double_click(event):
+        def change_status_option(option):
             item = self.tree.selection()
             if item:
                 selected_lead_data = self.tree.item(item, "values")[:2]
-                closelead(selected_lead_data)
+                lead_id = selected_lead_data[0]
+                title = f"Change Status - ID: {lead_id}"
+                result = messagebox.askokcancel(
+                    title, f"Do you want to change the status to {option}?"
+                )
 
-        def update_lead_data(lead_id):
+                if result:
+                    update_lead_data(lead_id, option)
+
+        def update_lead_data(lead_id, new_status):
             # Connect to your SQLite database
-            connection = sqlite3.connect(
-                "salestracker.db"
-            )  # Replace with your database name
+            connection = sqlite3.connect("salestracker.db")
 
             # Create a cursor object
             cursor = connection.cursor()
 
-            # Update the 'status' column to 'close' for the specified lead_id
+            # Update the 'status' column to the specified new_status for the specified lead_id
             cursor.execute(
-                "UPDATE leadlist SET status = 'close' WHERE id = ?", (lead_id,)
+                "UPDATE leadlist SET status = ? WHERE id = ?", (new_status, lead_id)
             )
 
             # Commit the changes
@@ -204,8 +269,25 @@ class Closure:
             if item:
                 menu.post(event.x_root, event.y_root)
 
+        # Modify your existing menu creation code to include the change_status_option function
+
+        connection = sqlite3.connect("salestracker.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT statustype FROM status")
+        change_status_options = [rows[0] for rows in cursor.fetchall()]
+
+        # Add filtering options for Status
+        change_status_menu = tk.Menu(self.tree, tearoff=0)
+
+        for option in change_status_options:
+            change_status_menu.add_command(
+                label=option,
+                command=lambda opt=option: change_status_option(opt),
+            )
+
+        # Assuming `self.tree` is the parent widget for the menu
         menu = tk.Menu(self.tree, tearoff=0)
-        menu.add_command(label="Close Lead", command=closelead)
+        menu.add_cascade(label="Change Status", menu=change_status_menu)
+
         self.tree.bind("<Button-3>", open_context_menu)  # Right-click event
-        self.tree.bind("<Double-1>", on_double_click)
-        fetch_lead_data()
+        fetch_lead_open_data()
