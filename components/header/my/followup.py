@@ -12,15 +12,303 @@ class FollowUp:
     search_icon = None
     date_filter_icon = None
     refresh_icon = None
+    save_icon = None
+    cancle_icon = None
 
     def __init__(self, parent):
         self.parent = parent
+        self.opened_windows = []
 
-        def followup_window():
-            search_window = tk.Toplevel(parent)
-            search_window.title("Search Window")
-            search_window.geometry("450x170+1000+80")
-            search_window.resizable(False, False)
+        def followup_data():
+            selected_item = self.tree.selection()
+            if selected_item:
+                selected_data = self.tree.item(selected_item, "values")
+                followup_window(selected_data)
+            else:
+                tk.messagebox.showinfo("Info", "Please select a row.")
+
+        def followup_window(selected_data):
+
+            followup_window = tk.Toplevel(self.parent)
+            followup_window.title("Search Window")
+            followup_window.configure(bg="white")
+            followup_window.geometry("600x500+900+100")
+            followup_window.resizable(False, False)
+
+            self.opened_windows.append(followup_window)
+
+            def on_window_close(self, window):
+                # Remove the closed window from the list
+                self.opened_windows.remove(window)
+
+            def show_box(box_number, selected_data):
+                # Hide all containers
+                followup_container.place_forget()
+                history_container.place_forget()
+
+                followupbtn.config(bg="lightgray" if box_number != 1 else "#0086B3")
+                historybtn.config(bg="lightgray" if box_number != 2 else "#0086B3")
+
+                # Display the selected container
+                if box_number == 1:
+                    followup_container.place(x=12, y=67, height=433, width=588)
+                elif box_number == 2:
+                    history_container.place(x=12, y=67, height=433, width=588)
+                    followuphis(selected_data)
+
+            self.save_icon = Image.open("asset/check_icon/check.png")
+            self.save_icon = self.save_icon.resize((25, 25))
+            self.save_icon = ImageTk.PhotoImage(self.save_icon)
+
+            def save_followup():
+                # Get the follow-up data from the text boxes
+                followup_data = (
+                    folluptext1.get("1.0", tk.END).strip(),
+                    folluptext2.get("1.0", tk.END).strip(),
+                    folluptext3.get("1.0", tk.END).strip(),
+                    folluptext4.get("1.0", tk.END).strip(),
+                    folluptext5.get("1.0", tk.END).strip(),
+                    folluptext6.get("1.0", tk.END).strip(),
+                )
+
+                # Update or insert the follow-up data into the database
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM leadlist WHERE id=?", (selected_data[0],))
+                existing_data = cursor.fetchone()
+
+                if existing_data:
+                    # Update existing record
+                    cursor.execute(
+                        "UPDATE leadlist SET followup1=?, followup2=?, followup3=?, followup4=?, followup5=?, followup6=? WHERE id=?",
+                        followup_data + (selected_data[0],),
+                    )
+                else:
+                    # Insert new record
+                    cursor.execute(
+                        "INSERT INTO leadlist (id, followup1, followup2, followup3, followup4, followup5, followup6) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (selected_data[0],) + followup_data,
+                    )
+
+                conn.commit()
+                conn.close()
+
+                tk.messagebox.showinfo("Success", "Follow-up data saved successfully!")
+
+            save_button = tk.Button(
+                followup_window,
+                image=self.save_icon,
+                borderwidth=0,
+                highlightthickness=0,
+                bg="white",
+                height=25,
+                width=25,
+                command=save_followup,
+            )
+            save_button.place(y=15, x=20)
+            save_text = tk.Label(
+                followup_window,
+                text="Save",
+                fg="black",
+                bg="white",
+                font=("Arial", 12),
+            )
+            save_text.place(y=40, x=10)
+
+            self.cancle_icon = Image.open("asset/check_icon/close.png")
+            self.cancle_icon = self.cancle_icon.resize((25, 25))
+            self.cancle_icon = ImageTk.PhotoImage(self.cancle_icon)
+
+            cancle_button = tk.Button(
+                followup_window,
+                image=self.cancle_icon,
+                borderwidth=0,
+                highlightthickness=0,
+                bg="white",
+                height=25,
+                width=25,
+                command=on_window_close,
+            )
+            cancle_button.place(y=15, x=560)
+
+            cancle_text = tk.Label(
+                followup_window,
+                text="Cancle",
+                fg="black",
+                bg="white",
+                font=("Arial", 12),
+            )
+            cancle_text.place(y=40, x=545)
+
+            separator = tk.Frame(followup_window, height=3, width=600, bg="black")
+            separator.place(y=65)
+
+            data_container = tk.Frame(followup_window, height=450, width=600)
+            data_container.place(y=70)
+            clicked_data_lable_name = tk.Label(
+                data_container, text=selected_data[2], font=("arial", 15)
+            )
+            clicked_data_lable_name.place(x=10, y=10)
+
+            data_btn_clr = "#0086B3"
+            followupbtn = tk.Button(
+                data_container,
+                text="Follow Up",
+                bg=data_btn_clr,
+                command=lambda: show_box(1),
+            )
+            followupbtn.place(y=40, x=10)
+
+            def followuphis(selected_data):
+                conn = sqlite3.connect("salestracker.db")
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT followup1, followup2, followup3, followup4, followup5, followup6 FROM leadlist WHERE id=?",
+                    (selected_data[0],),
+                )
+                followup_data = cursor.fetchone()
+                conn.close()
+
+                # Display follow-up data in the text boxes
+                folluptext1.delete("1.0", tk.END)
+                folluptext2.delete("1.0", tk.END)
+                folluptext3.delete("1.0", tk.END)
+                folluptext4.delete("1.0", tk.END)
+                folluptext5.delete("1.0", tk.END)
+                folluptext6.delete("1.0", tk.END)
+
+                folluptext1.insert(tk.END, followup_data[0])  # followup1
+                folluptext2.insert(tk.END, followup_data[1])  # followup2
+                folluptext3.insert(tk.END, followup_data[2])  # followup3
+                folluptext4.insert(tk.END, followup_data[3])  # followup4
+                folluptext5.insert(tk.END, followup_data[4])  # followup5
+                folluptext6.insert(tk.END, followup_data[5])  # followup6
+
+            historybtn = tk.Button(
+                data_container,
+                text="history",
+                command=lambda: show_box(2, selected_data),
+            )
+            historybtn.place(y=40, x=80)
+
+            followup_container = tk.Frame(
+                data_container,
+                height=433,
+                width=588,
+                bg="lightgray",
+                borderwidth=2,
+                relief=tk.GROOVE,
+                highlightthickness=-0,
+            )
+            followup_container.place(x=12, y=67)
+
+            date_lable = tk.Label(
+                followup_container,
+                text="Date",
+            )
+            date_lable.place(x=5, y=5)
+
+            date_entry = DateEntry(followup_container)
+            date_entry.place(x=75, y=5)
+
+            followups_lable = tk.Label(
+                followup_container,
+                text="Follow Ups",
+            )
+            followups_lable.place(x=5, y=35)
+
+            def update_notes_entry(event):
+                selected_followup = followups_entry.get()
+
+                # Retrieve the corresponding follow-up text data
+                followup_text_data = {
+                    "Follow Up 1": folluptext1.get("1.0", tk.END).strip(),
+                    "Follow Up 2": folluptext2.get("1.0", tk.END).strip(),
+                    "Follow Up 3": folluptext3.get("1.0", tk.END).strip(),
+                    "Follow Up 4": folluptext4.get("1.0", tk.END).strip(),
+                    "Follow Up 5": folluptext5.get("1.0", tk.END).strip(),
+                    "Follow Up 6": folluptext6.get("1.0", tk.END).strip(),
+                }
+
+                # Set the notes_entry based on the selected follow-up
+                notes_entry.delete("1.0", tk.END)
+                notes_entry.insert(tk.END, followup_text_data[selected_followup])
+
+            followup_options = [
+                "Follow Up 1",
+                "Follow Up 2",
+                "Follow Up 3",
+                "Follow Up 4",
+                "Follow Up 5",
+                "Follow Up 6",
+            ]
+            followups_entry = ttk.Combobox(followup_container)
+            followups_entry["values"] = followup_options
+            followups_entry.place(x=75, y=35)
+            followups_entry.bind("<<ComboboxSelected>>", update_notes_entry)
+            notes_lable = tk.Label(
+                followup_container,
+                text="Notes",
+            )
+            notes_lable.place(x=5, y=65)
+
+            notes_entry = tk.Text(followup_container, height=10, width=55)
+            notes_entry.place(x=75, y=65)
+
+            history_container = tk.Frame(
+                data_container,
+                height=433,
+                width=588,
+                bg="gray",
+                borderwidth=2,
+                relief=tk.GROOVE,
+                highlightthickness=-0,
+            )
+            history_container.place(x=12, y=67)
+
+            followupbox1 = tk.Frame(history_container, height=355, width=290)
+            followupbox1.place(x=0, y=0)
+
+            follup1 = tk.Label(followupbox1, text="follow up1")
+            follup1.place(x=0, y=0)
+
+            folluptext1 = tk.Text(followupbox1, height=5, width=35)
+            folluptext1.place(y=20)
+
+            follup2 = tk.Label(followupbox1, text="follow up2")
+            follup2.place(x=0, y=110)
+
+            folluptext2 = tk.Text(followupbox1, height=5, width=35)
+            folluptext2.place(y=130)
+
+            follup3 = tk.Label(followupbox1, text="follow up3")
+            follup3.place(x=0, y=220)
+
+            folluptext3 = tk.Text(followupbox1, height=5, width=35)
+            folluptext3.place(y=240)
+
+            followupbox2 = tk.Frame(history_container, height=355, width=290)
+            followupbox2.place(x=294, y=0)
+
+            follup4 = tk.Label(followupbox2, text="follow up4")
+            follup4.place(x=0, y=0)
+
+            folluptext4 = tk.Text(followupbox2, height=5, width=35)
+            folluptext4.place(y=20)
+
+            follup5 = tk.Label(followupbox2, text="follow up5")
+            follup5.place(x=0, y=110)
+
+            folluptext5 = tk.Text(followupbox2, height=5, width=35)
+            folluptext5.place(y=130)
+
+            follup6 = tk.Label(followupbox2, text="follow up6")
+            follup6.place(x=0, y=220)
+
+            folluptext6 = tk.Text(followupbox2, height=5, width=35)
+            folluptext6.place(y=240)
+
+            history_container.place_forget()
 
         def search_window():
             search_window = tk.Toplevel(parent)
@@ -91,24 +379,27 @@ class FollowUp:
             search_btn.place(x=210, y=50)
 
         def fetch_lead_data():
-            # Connect to MySQL server
+            # Connect to SQLite database
             conn = sqlite3.connect("salestracker.db")
             cursor = conn.cursor()
 
-            # Fetch data from the leadlist table
-            cursor.execute("SELECT id,  date, fullname,address FROM leadlist")
+            # Fetch data from the leadlist table, including follow-up columns 1 to 6
+            cursor.execute(
+                "SELECT id, date, fullname, address, followup1, followup2, followup3, followup4, followup5, followup6 FROM leadlist"
+            )
 
             lead_data = cursor.fetchall()
 
             # Close the database connection
-            conn.commit()
             conn.close()
-            # Clear existing data in the treeview
-            self.tree.delete(*self.tree.get_children())
 
             return lead_data
 
         def populate_treeview():
+            # Clear existing items in the Treeview
+            for item in self.tree.get_children():
+                self.tree.delete(item)
+
             lead_data = fetch_lead_data()
 
             for lead_row in lead_data:
@@ -117,7 +408,14 @@ class FollowUp:
                     date,
                     name,
                     address,
+                    follow_up_1,
+                    follow_up_2,
+                    follow_up_3,
+                    follow_up_4,
+                    follow_up_5,
+                    follow_up_6,
                 ) = lead_row
+
                 self.tree.insert(
                     "",
                     "end",
@@ -126,6 +424,12 @@ class FollowUp:
                         date,
                         name,
                         address,
+                        follow_up_1,
+                        follow_up_2,
+                        follow_up_3,
+                        follow_up_4,
+                        follow_up_5,
+                        follow_up_6,
                     ),
                 )
 
@@ -205,17 +509,14 @@ class FollowUp:
         lead_heading_menu2 = tk.Frame(lead_heading, bg="white", height=45, width=55)
         lead_heading_menu2.place(x=12, y=10)
 
-        lead_heading_menu3 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu3.place(x=80, y=10)
-
         lead_heading_menu4 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu4.place(x=150, y=10)
+        lead_heading_menu4.place(x=80, y=10)
 
         lead_heading_menu5 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu5.place(x=220, y=10)
+        lead_heading_menu5.place(x=150, y=10)
 
         lead_heading_menu6 = tk.Frame(lead_heading, bg="white", height=45, width=55)
-        lead_heading_menu6.place(x=300, y=10)
+        lead_heading_menu6.place(x=220, y=10)
 
         self.followup_icon = Image.open("asset/followup/call.png")
         self.followup_icon = self.followup_icon.resize((25, 25))
@@ -229,7 +530,7 @@ class FollowUp:
             bg="white",
             height=25,
             width=25,
-            command=followup_window,
+            command=followup_data,
         )
         followup_button.grid(row=0, column=1, padx=5)
 
@@ -241,30 +542,6 @@ class FollowUp:
             font=("Arial", 12),
         )
         followup_text.grid(row=1, column=1)
-
-        self.view_icon = Image.open("asset/followup/view.png")
-        self.view_icon = self.view_icon.resize((25, 25))
-        self.view_icon = ImageTk.PhotoImage(self.view_icon)
-
-        view_button = tk.Button(
-            lead_heading_menu3,
-            image=self.view_icon,
-            borderwidth=0,
-            highlightthickness=0,
-            bg="white",
-            height=25,
-            width=25,
-        )
-        view_button.grid(row=0, column=1, padx=5)
-
-        view_text = tk.Label(
-            lead_heading_menu3,
-            text="View",
-            fg="black",
-            bg="white",
-            font=("Arial", 12),
-        )
-        view_text.grid(row=1, column=1)
 
         self.refresh_icon = Image.open("asset/Lead_icon/refresh.png")
         self.refresh_icon = self.refresh_icon.resize((25, 25))
@@ -396,7 +673,7 @@ class FollowUp:
                 menu.post(event.x_root, event.y_root)
 
         menu = tk.Menu(self.tree, tearoff=0)
-        menu.add_command(label="follow up", command=followup_window)
+        menu.add_command(label="follow up", command=followup_data)
         menu.add_command(
             label="view",
         )
