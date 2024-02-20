@@ -14,8 +14,6 @@ from components.header.my.leadlist import LeadHeader
 from components.header.my.report import Report
 from components.header.Org.assign import Assign
 
-# from components.header.Org.lead import Lead
-
 
 class SalesTracker:
     refresh_icon = None
@@ -25,86 +23,28 @@ class SalesTracker:
         master.title("SalesTracker")
         master.resizable(False, False)
 
-        # def center_window(window, width, height):
-        #     screen_width = window.winfo_screenwidth()
-        #     screen_height = window.winfo_screenheight()
-        #     x_coordinate = int((screen_width - width) / 2)
-        #     y_coordinate = int((screen_height - height) / 2)
-        #     window.geometry(f"{width}x{height}+{x_coordinate}+{y_coordinate}")
+        def show_canvas():
+            self.canvas.pack(side="left", fill="both", expand=True)
 
-        # def open_profile():
-        #     profile_window = tk.Toplevel(self.master)
-        #     profile_window.title("Small Window")
-        #     profile_window.geometry("50x50")
-        #     center_window(profile_window, 487, 400)
-        #     profile_window.resizable(False, False)
-        #     profile_window.title("Profile")
+        def close_page(container):
+            container.pack_forget()
+            self.canvas.pack(side="left", fill="both", expand=True)
 
-        #     close_img_path = "asset/check_icon/close.png"
-        #     close_icon = Image.open(close_img_path)
-        #     close_icon = close_icon.resize((25, 25))
-        #     self.close_icon_photo = ImageTk.PhotoImage(close_icon)
+        def add_close_button(container):
+            close_image = Image.open("close.png").resize((25, 25))
+            close_icon = ImageTk.PhotoImage(close_image)
 
-        #     close_btn = tk.Button(
-        #         profile_window,
-        #         image=self.close_icon_photo,
-        #         borderwidth=2,
-        #         highlightthickness=0,
-        #         relief="flat",
-        #     )
-        #     close_btn.pack(anchor="ne", padx=12, pady=7)
-
-        #     close_label = tk.Label(profile_window, text="close")
-        #     close_label.place(x=445, y=34)
-
-        #     separator1 = tk.Frame(profile_window, height=2, width=490, bg="black")
-        #     separator1.place(y=55)
-
-        #     profile_type_lable = tk.Label(
-        #         profile_window, text="Admin", font=("Arial", 20)
-        #     )
-        #     profile_type_lable.place(y=85, x=15)
-
-        #     btn_clr = "#0086B3"
-        #     general_lable = tk.Label(
-        #         profile_window,
-        #         text="general",
-        #         font=("Arial", 15),
-        #         bg=btn_clr,
-        #         padx=2,  # Adjust the padding on the x-axis
-        #         pady=2,  # Adjust the padding on the y-axis
-        #     )
-        #     general_lable.place(y=120, x=17)
-
-        #     userinfo = tk.Frame(
-        #         profile_window,
-        #         width=1500,
-        #         height=300,
-        #         bg="white",
-        #         borderwidth=0,
-        #         relief=tk.GROOVE,
-        #         highlightthickness=-0,
-        #     )
-        #     userinfo.pack(pady=100, padx=15)
-        #     userinfo.grid_propagate(False)
-
-        #     user_type_lable = tk.Label(userinfo, text="User type", font=("Arial,30"))
-        #     user_type_lable.grid(row=0, column=0, padx=15, pady=15)
-
-        #     user_type_entry_lable = tk.Entry(userinfo, width=50)
-        #     user_type_entry_lable.grid(row=0, column=1)
-
-        #     email_lable = tk.Label(userinfo, text="Email", font=("Arial,30"))
-        #     email_lable.grid(row=1, column=0, padx=15, pady=15)
-
-        #     email_entry_lable = tk.Entry(userinfo, width=50)
-        #     email_entry_lable.grid(row=1, column=1)
-
-        #     mobile_lable = tk.Label(userinfo, text="Mobile", font=("Arial,30"))
-        #     mobile_lable.grid(row=3, column=0, padx=15, pady=15)
-
-        #     mobile_entry_lable = tk.Entry(userinfo, width=50)
-        #     mobile_entry_lable.grid(row=3, column=1)
+            close_button = tk.Button(
+                container,
+                image=close_icon,
+                bg="white",
+                borderwidth=0,
+                command=lambda: close_page(container),
+                height=35,
+                width=35,
+            )
+            close_button.photo = close_icon
+            close_button.place(x=container.winfo_reqwidth() - 100, y=10)
 
         def close_window(event=None):
             root.destroy()
@@ -113,6 +53,8 @@ class SalesTracker:
             menu.post(
                 button.winfo_rootx(), button.winfo_rooty() + button.winfo_height()
             )
+
+        self.canvas_visible = True
 
         def show_page(page_type):
             containers = [
@@ -135,28 +77,38 @@ class SalesTracker:
             self.canvas.pack_forget()
             if page_type == "list":
                 self.lead_list_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.lead_list_container)
             elif page_type == "details":
                 self.lead_details_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.lead_details_container)
             elif page_type == "followup":
                 self.follow_up_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.follow_up_container)
             elif page_type == "closure":
                 self.closure_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.closure_container)
             elif page_type == "smart report":
                 self.report_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.report_container)
             elif page_type == "assign":
                 self.assign_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.assign_container)
             elif page_type == "employee":
                 self.employee_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.employee_container)
             elif page_type == "products":
                 self.product_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.product_container)
             elif page_type == "parameter":
                 self.parameter_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.parameter_container)
             elif page_type == "status":
                 self.status_container.pack(fill=tk.BOTH, expand=True)
+                add_close_button(self.status_container)
 
-        def close_page():
-            self.lead_list_container.pack_forget()
-            self.lead_details_container.pack_forget()
+        # def close_page():
+        #     self.lead_list_container.pack_forget()
+        #     self.lead_details_container.pack_forget()
 
         header_frame = tk.Frame(self.master, bg="lightgray", height=40)
         header_frame.pack(fill=tk.X, side=tk.TOP)
@@ -206,9 +158,7 @@ class SalesTracker:
         # organization menu
         org_menu = tk.Menu(header_frame, tearoff=0, font=menu_font)
         home_menu = tk.Menu(my_menu, tearoff=0, font=menu_font)
-        home_menu.add_command(
-            label="Dashboard",
-        )
+        home_menu.add_command(label="Dashboard", command=show_canvas)
         # org_menu.add_command(label="Leads", command=lambda: show_page("leads"))
         org_menu.add_command(label="Assign", command=lambda: show_page("assign"))
         org_menu.add_cascade(label="Home", menu=home_menu)
@@ -323,21 +273,6 @@ class SalesTracker:
         self.status_container = tk.Frame(master, bg="white", bd=1, relief=tk.SOLID)
         self.status_container.pack(fill=tk.BOTH, expand=True)
         self.status_container.pack_forget()
-
-        close_image = Image.open("close.png").resize((25, 25))
-        close_icon = ImageTk.PhotoImage(close_image)
-
-        close_list = tk.Button(
-            self.lead_details_container,
-            image=close_icon,
-            bg="white",
-            borderwidth=0,
-            command=close_page,
-            height=35,
-            width=35,
-        )
-        close_list.photo = close_icon
-        close_list.place(x=1470, y=10)
 
         self.leadlist = LeadHeader(self.lead_list_container)
         self.leaddetails = LeadDetails(self.lead_details_container)

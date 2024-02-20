@@ -175,7 +175,7 @@ class LeadDetails:
 
             return sources, assign_names, status_options, product_names
 
-        lead_heading = tk.Frame(parent, bg="white", width=1300, height=55)
+        lead_heading = tk.Frame(parent, bg="black", width=1300, height=55)
         lead_heading.pack(side=tk.TOP, anchor=tk.NW)
 
         sepretor = tk.Frame(parent, bg="black", height=2, width=1510)

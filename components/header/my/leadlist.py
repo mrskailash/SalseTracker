@@ -31,11 +31,6 @@ class LeadHeader:
         self.parent = parent
         self.open_detail_windows = []
 
-        def destroy_previous_window():
-            global last_filtered_data_window
-            if last_filtered_data_window:
-                last_filtered_data_window.destroy()
-
         def search_window():
 
             def fetch_data():
@@ -220,6 +215,11 @@ class LeadHeader:
                 tree.insert("", "end", values=row)
 
             tree.pack(fill="both", expand=True)
+
+        def destroy_previous_window():
+            global last_filtered_data_window
+            if last_filtered_data_window:
+                last_filtered_data_window.destroy()
 
         def show_date_window():
             global date_window
